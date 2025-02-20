@@ -1,11 +1,13 @@
 
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Search, User, Bell } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 const Navbar = () => {
+  const navigate = useNavigate();
+
   return (
     <nav className="sticky top-0 z-50 backdrop-blur-lg bg-background/80 border-b">
       <div className="container mx-auto px-4">
@@ -24,14 +26,28 @@ const Navbar = () => {
           </div>
           
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" className="relative">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="relative"
+              onClick={() => navigate('/notifications')}
+            >
               <Bell className="h-5 w-5" />
               <span className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full" />
             </Button>
-            <Button variant="ghost" size="icon">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => navigate('/profile/me')}
+            >
               <User className="h-5 w-5" />
             </Button>
-            <Button className="hidden md:flex">Create Post</Button>
+            <Button 
+              className="hidden md:flex"
+              onClick={() => navigate('/create')}
+            >
+              Create Post
+            </Button>
           </div>
         </div>
       </div>

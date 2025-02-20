@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ThumbsUp, ThumbsDown, MessageSquare, Share2, MoreVertical } from "lucide-react";
@@ -19,11 +20,16 @@ interface BlogPostProps {
 }
 
 const BlogPost = ({ post }: BlogPostProps) => {
+  const navigate = useNavigate();
+
   return (
     <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg animate-fade-in">
       <CardHeader className="space-y-0 pb-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
+          <div 
+            className="flex items-center space-x-3 cursor-pointer" 
+            onClick={() => navigate(`/profile/${post.author}`)}
+          >
             <Avatar>
               <div className="w-10 h-10 rounded-full bg-muted" />
             </Avatar>
@@ -42,7 +48,10 @@ const BlogPost = ({ post }: BlogPostProps) => {
         </div>
       </CardHeader>
       
-      <div className="aspect-video relative overflow-hidden">
+      <div 
+        className="aspect-video relative overflow-hidden cursor-pointer"
+        onClick={() => navigate(`/post/${post.id}`)}
+      >
         <img
           src={post.image}
           alt={post.title}
@@ -51,7 +60,10 @@ const BlogPost = ({ post }: BlogPostProps) => {
       </div>
       
       <CardContent className="pt-6">
-        <h3 className="text-2xl font-semibold tracking-tight hover:text-primary transition-colors">
+        <h3 
+          className="text-2xl font-semibold tracking-tight hover:text-primary transition-colors cursor-pointer"
+          onClick={() => navigate(`/post/${post.id}`)}
+        >
           {post.title}
         </h3>
         <p className="text-muted-foreground mt-2 line-clamp-3">
@@ -73,7 +85,11 @@ const BlogPost = ({ post }: BlogPostProps) => {
             <Share2 className="w-4 h-4" />
           </Button>
         </div>
-        <Button variant="outline" size="sm">
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={() => navigate(`/post/${post.id}`)}
+        >
           Read More
         </Button>
       </CardFooter>
