@@ -35,7 +35,7 @@ const FeaturedPosts = () => {
             </CardContent>
           </div>
         </Card>
-      </section>
+      </div>
     </section>
   );
 };
