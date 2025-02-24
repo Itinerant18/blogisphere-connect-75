@@ -3,9 +3,17 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ThumbsUp, ThumbsDown, MessageSquare, Share2, MoreVertical } from "lucide-react";
+import { ThumbsUp, MessageSquare, Share2, MoreVertical, Trash2 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { useUser } from "@clerk/clerk-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
 
 interface BlogPostProps {
   post: {
@@ -23,6 +31,22 @@ interface BlogPostProps {
 
 const BlogPost = ({ post }: BlogPostProps) => {
   const navigate = useNavigate();
+  const { user } = useUser();
+
+  const handleDeletePost = () => {
+    const posts = JSON.parse(localStorage.getItem('blogPosts') || '[]');
+    const updatedPosts = posts.filter((p: any) => p.id !== post.id);
+    localStorage.setItem('blogPosts', JSON.stringify(updatedPosts));
+    toast.success('Post deleted successfully');
+    // Force a page reload to reflect the changes
+    window.location.reload();
+  };
+
+  const navigateToProfile = () => {
+    navigate(`/profile/${post.author}`);
+  };
+
+  const isAuthor = user?.username === post.author || user?.firstName === post.author;
 
   return (
     <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg animate-fade-in">
@@ -30,7 +54,7 @@ const BlogPost = ({ post }: BlogPostProps) => {
         <div className="flex items-center justify-between">
           <div 
             className="flex items-center space-x-3 cursor-pointer" 
-            onClick={() => navigate(`/profile/${post.author}`)}
+            onClick={navigateToProfile}
           >
             <Avatar>
               <div className="w-10 h-10 rounded-full bg-muted" />
@@ -44,9 +68,24 @@ const BlogPost = ({ post }: BlogPostProps) => {
               </p>
             </div>
           </div>
-          <Button variant="ghost" size="icon">
-            <MoreVertical className="h-4 w-4" />
-          </Button>
+          {isAuthor && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem 
+                  className="text-destructive"
+                  onClick={handleDeletePost}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Post
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </CardHeader>
       
@@ -69,7 +108,7 @@ const BlogPost = ({ post }: BlogPostProps) => {
       <CardContent className="pt-6">
         <h3 
           className="text-2xl font-semibold tracking-tight hover:text-primary transition-colors cursor-pointer"
-          onClick={() => navigate(`/post/${post.id}`)}
+          onClick={navigateToProfile}
         >
           {post.title}
         </h3>

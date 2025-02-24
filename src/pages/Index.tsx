@@ -49,6 +49,8 @@ const Index = () => {
   const [allPosts, setAllPosts] = useState<Post[]>([]);
 
   useEffect(() => {
+    localStorage.removeItem('blogPosts');
+    
     const userPosts = JSON.parse(localStorage.getItem('blogPosts') || '[]');
     setAllPosts([...userPosts, ...dummyPosts]);
   }, []);
