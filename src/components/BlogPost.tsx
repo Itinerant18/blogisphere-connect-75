@@ -5,6 +5,7 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button";
 import { ThumbsUp, ThumbsDown, MessageSquare, Share2, MoreVertical } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 
 interface BlogPostProps {
   post: {
@@ -16,6 +17,7 @@ interface BlogPostProps {
     likes: number;
     comments: number;
     image: string;
+    category?: string;
   };
 }
 
@@ -57,6 +59,11 @@ const BlogPost = ({ post }: BlogPostProps) => {
           alt={post.title}
           className="object-cover w-full h-full transition-transform duration-300 hover:scale-105"
         />
+        {post.category && (
+          <Badge className="absolute top-2 right-2">
+            {post.category}
+          </Badge>
+        )}
       </div>
       
       <CardContent className="pt-6">
