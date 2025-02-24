@@ -9,6 +9,8 @@ import { useTheme } from 'next-themes';
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { useUser } from "@clerk/clerk-react";
+import { useNavigate } from 'react-router-dom';
 
 const categories = [
   "All",
@@ -46,6 +48,8 @@ const dummyPosts = [
 
 const Index = () => {
   const { theme, setTheme } = useTheme();
+  const { isSignedIn, user } = useUser();
+  const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = React.useState("All");
   const [email, setEmail] = React.useState("");
 
@@ -61,6 +65,14 @@ const Index = () => {
     }
   };
 
+  const handleCreatePost = () => {
+    if (!isSignedIn) {
+      toast.error("Please sign in to create a post");
+      return;
+    }
+    navigate('/create');
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted">
       <Navbar />
@@ -69,6 +81,7 @@ const Index = () => {
           <div className="text-center space-y-4">
             <h1 className="text-4xl font-bold tracking-tight sm:text-6xl">
               Welcome to BlogSphere
+              {isSignedIn && `, ${user.firstName || user.username}`}
             </h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               Share your stories, connect with others, and discover amazing content.
@@ -140,6 +153,7 @@ const Index = () => {
       <Button 
         size="icon" 
         className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg"
+        onClick={handleCreatePost}
       >
         <Plus className="h-6 w-6" />
       </Button>
