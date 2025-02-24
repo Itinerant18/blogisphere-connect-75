@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +9,7 @@ import Navbar from '@/components/Navbar';
 import { toast } from "sonner";
 import { useUser } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
+import type { Post } from '../types/post';
 
 const categories = [
   "Technology",
@@ -73,7 +73,26 @@ const CreatePost = () => {
       return;
     }
     
-    // For now, just show a success message
+    const newPost: Post = {
+      id: Date.now().toString(),
+      title: title.trim(),
+      excerpt: content.substring(0, 150) + "...",
+      author: user?.username || user?.firstName || "Anonymous",
+      date: new Date().toISOString(),
+      likes: 0,
+      comments: 0,
+      image: imageUrl || "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d",
+      category: selectedCategory,
+      content: content.trim(),
+      tags: tags
+    };
+
+    // Get existing posts or initialize empty array
+    const existingPosts = JSON.parse(localStorage.getItem('blogPosts') || '[]');
+    
+    // Add new post to beginning of array
+    localStorage.setItem('blogPosts', JSON.stringify([newPost, ...existingPosts]));
+    
     toast.success("Post published successfully!");
     navigate("/");
   };

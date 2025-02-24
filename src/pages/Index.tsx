@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Plus, Sun, Moon } from "lucide-react";
 import BlogPost from '@/components/BlogPost';
@@ -10,41 +10,53 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useUser } from "@clerk/clerk-react";
 import { useNavigate } from 'react-router-dom';
+import type { Post } from '../types/post';
+
 const categories = ["All", "Technology", "Mindfulness", "Productivity", "Design", "Career"];
-const dummyPosts = [{
-  id: '1',
-  title: 'The Art of Mindful Living',
-  excerpt: 'Discover how mindfulness can transform your daily life and enhance your well-being. Learn practical tips and techniques for incorporating mindfulness into your daily routine.',
-  author: 'Sarah Chen',
-  date: '2024-03-10',
-  likes: 42,
-  comments: 8,
-  image: 'https://images.unsplash.com/photo-1649972904349-6e44c42644a7',
-  category: 'Mindfulness'
-}, {
-  id: '2',
-  title: 'Future of Technology',
-  excerpt: 'Exploring the latest trends in AI, blockchain, and quantum computing. Understanding how these technologies will shape our future and transform industries.',
-  author: 'Michael Johnson',
-  date: '2024-03-09',
-  likes: 35,
-  comments: 12,
-  image: 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d',
-  category: 'Technology'
-}];
+const dummyPosts: Post[] = [
+  {
+    id: 'dummy-1',
+    title: 'The Art of Mindful Living',
+    excerpt: 'Discover how mindfulness can transform your daily life and enhance your well-being. Learn practical tips and techniques for incorporating mindfulness into your daily routine.',
+    author: 'Sarah Chen',
+    date: '2024-03-10',
+    likes: 42,
+    comments: 8,
+    image: 'https://images.unsplash.com/photo-1649972904349-6e44c42644a7',
+    category: 'Mindfulness',
+    content: 'Full content here...'
+  },
+  {
+    id: 'dummy-2',
+    title: 'Future of Technology',
+    excerpt: 'Exploring the latest trends in AI, blockchain, and quantum computing. Understanding how these technologies will shape our future and transform industries.',
+    author: 'Michael Johnson',
+    date: '2024-03-09',
+    likes: 35,
+    comments: 12,
+    image: 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d',
+    category: 'Technology',
+    content: 'Full content here...'
+  }
+];
+
 const Index = () => {
-  const {
-    theme,
-    setTheme
-  } = useTheme();
-  const {
-    isSignedIn,
-    user
-  } = useUser();
+  const { theme, setTheme } = useTheme();
+  const { isSignedIn, user } = useUser();
   const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = React.useState("All");
   const [email, setEmail] = React.useState("");
-  const filteredPosts = selectedCategory === "All" ? dummyPosts : dummyPosts.filter(post => post.category === selectedCategory);
+  const [allPosts, setAllPosts] = useState<Post[]>([]);
+
+  useEffect(() => {
+    const userPosts = JSON.parse(localStorage.getItem('blogPosts') || '[]');
+    setAllPosts([...userPosts, ...dummyPosts]);
+  }, []);
+
+  const filteredPosts = selectedCategory === "All" 
+    ? allPosts 
+    : allPosts.filter(post => post.category === selectedCategory);
+
   const handleNewsletterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (email) {
@@ -52,6 +64,7 @@ const Index = () => {
       setEmail("");
     }
   };
+
   const handleCreatePost = () => {
     if (!isSignedIn) {
       toast.error("Please sign in to create a post");
@@ -59,6 +72,7 @@ const Index = () => {
     }
     navigate('/create');
   };
+
   return <div className="min-h-screen bg-gradient-to-b from-background to-muted">
       <Navbar />
       <main className="container mx-auto px-4 py-8">
@@ -73,7 +87,6 @@ const Index = () => {
             </p>
           </div>
 
-          {/* Theme Toggle */}
           <div className="flex justify-end">
             <Button variant="ghost" size="icon" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
               {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
@@ -82,15 +95,13 @@ const Index = () => {
 
           <FeaturedPosts />
 
-          {/* Categories */}
           <div className="flex flex-wrap gap-2 justify-center">
             {categories.map(category => <Button key={category} variant={selectedCategory === category ? "default" : "outline"} onClick={() => setSelectedCategory(category)} className="rounded-full">
                 {category}
               </Button>)}
           </div>
 
-          {/* Newsletter Signup */}
-          <Card className="p-6 max-w-xl mx-auto bg-primary/5 rounded">
+          <Card className="p-6 max-w-xl mx-auto bg-primary/5">
             <form onSubmit={handleNewsletterSubmit} className="space-y-4">
               <h3 className="text-xl font-semibold text-center">
                 Subscribe to Our Newsletter
@@ -106,15 +117,21 @@ const Index = () => {
           </Card>
 
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {filteredPosts.map(post => <BlogPost key={post.id} post={post} />)}
+            {filteredPosts.map((post) => (
+              <BlogPost key={post.id} post={post} />
+            ))}
           </div>
         </section>
       </main>
       
-      {/* Floating Action Button */}
-      <Button size="icon" className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg" onClick={handleCreatePost}>
+      <Button 
+        size="icon" 
+        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg"
+        onClick={handleCreatePost}
+      >
         <Plus className="h-6 w-6" />
       </Button>
     </div>;
 };
+
 export default Index;
