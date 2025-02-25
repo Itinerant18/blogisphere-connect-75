@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Plus, Sun, Moon } from "lucide-react";
@@ -24,7 +25,8 @@ const dummyPosts: Post[] = [
     comments: 8,
     image: 'https://images.unsplash.com/photo-1649972904349-6e44c42644a7',
     category: 'Mindfulness',
-    content: 'Full content here...'
+    content: 'Full content here...',
+    tags: ['mindfulness', 'wellness']
   },
   {
     id: 'dummy-2',
@@ -36,7 +38,8 @@ const dummyPosts: Post[] = [
     comments: 12,
     image: 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d',
     category: 'Technology',
-    content: 'Full content here...'
+    content: 'Full content here...',
+    tags: ['technology', 'ai']
   }
 ];
 
@@ -49,15 +52,19 @@ const Index = () => {
   const [allPosts, setAllPosts] = useState<Post[]>([]);
 
   useEffect(() => {
-    localStorage.removeItem('blogPosts');
+    // Remove this line as it was clearing all user posts
+    // localStorage.removeItem('blogPosts');
     
     const userPosts = JSON.parse(localStorage.getItem('blogPosts') || '[]');
+    console.log('User posts loaded:', userPosts); // Debug log
     setAllPosts([...userPosts, ...dummyPosts]);
   }, []);
 
   const filteredPosts = selectedCategory === "All" 
     ? allPosts 
     : allPosts.filter(post => post.category === selectedCategory);
+
+  console.log('Filtered posts:', filteredPosts); // Debug log
 
   const handleNewsletterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,9 +105,16 @@ const Index = () => {
           <FeaturedPosts />
 
           <div className="flex flex-wrap gap-2 justify-center">
-            {categories.map(category => <Button key={category} variant={selectedCategory === category ? "default" : "outline"} onClick={() => setSelectedCategory(category)} className="rounded-full">
+            {categories.map(category => (
+              <Button 
+                key={category} 
+                variant={selectedCategory === category ? "default" : "outline"} 
+                onClick={() => setSelectedCategory(category)} 
+                className="rounded-full"
+              >
                 {category}
-              </Button>)}
+              </Button>
+            ))}
           </div>
 
           <Card className="p-6 max-w-xl mx-auto bg-primary/5">
@@ -112,7 +126,13 @@ const Index = () => {
                 Get the latest posts delivered right to your inbox.
               </p>
               <div className="flex gap-2">
-                <Input type="email" placeholder="Enter your email" value={email} onChange={e => setEmail(e.target.value)} required />
+                <Input 
+                  type="email" 
+                  placeholder="Enter your email" 
+                  value={email} 
+                  onChange={e => setEmail(e.target.value)} 
+                  required 
+                />
                 <Button type="submit">Subscribe</Button>
               </div>
             </form>
