@@ -7,7 +7,7 @@ const FeaturedPosts = () => {
         <Card className="overflow-hidden">
           <div className="grid md:grid-cols-2 gap-6">
             <div className="relative h-[400px] md:h-auto">
-              <img alt="Featured post" className="absolute inset-0 w-full h-full object-cover" src="/lovable-uploads/461b9b6d-873c-4542-8b55-b942235487b3.png" />
+              <img alt="Featured post" src="/lovable-uploads/461b9b6d-873c-4542-8b55-b942235487b3.png" className="absolute inset-0 w-full h-full object-scale-down" />
             </div>
             <CardContent className="flex flex-col justify-center p-8 space-y-6">
               <div>

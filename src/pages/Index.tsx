@@ -66,10 +66,10 @@ const Index = () => {
 
           <div className="flex justify-between items-center gap-4">
             <div className="relative flex-1 max-w-xl rounded-none bg-slate-50">
-              <Input type="search" placeholder="Search posts..." value={searchQuery} onChange={e => handleSearch(e.target.value)} className="pl-20 bg-zinc-200" />
+              <Input type="search" placeholder="Search posts..." value={searchQuery} onChange={e => handleSearch(e.target.value)} className="pl-20 bg-zinc-100" />
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             </div>
-            <Button variant="ghost" size="icon" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} className="transition-transform hover:scale-110 font-thin">
+            <Button variant="ghost" size="icon" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} className="transition-transform hover:scale-110 font-thin text-left bg-zinc-100">
               {theme === "dark" ? <Sun className="h-5 w-5 transition-transform hover:rotate-45" /> : <Moon className="h-5 w-5 transition-transform hover:-rotate-12" />}
             </Button>
           </div>
