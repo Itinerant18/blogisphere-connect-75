@@ -55,7 +55,7 @@ const Index = () => {
       <main className="container mx-auto px-4 py-8">
         <section className="space-y-8 animate-fade-in">
           <div className="text-center space-y-4">
-            <h1 className="text-4xl font-bold tracking-tight sm:text-6xl">
+            <h1 className="text-4xl tracking-tight sm:text-2xl font-bold text-[#000050]">
               Welcome to BlogSphere
               {isSignedIn && `, ${user.firstName || user.username}`}
             </h1>
