@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Plus, Sun, Moon, Search } from "lucide-react";
 import BlogPost from '@/components/BlogPost';
@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { useUser } from "@clerk/clerk-react";
 import { useNavigate } from 'react-router-dom';
 import type { Post } from '../types/post';
+import { SearchBar } from '@/components/SearchBar';
 const categories = ["All", "Technology", "Mindfulness", "Productivity", "Design", "Career"];
 const Index = () => {
   const {
@@ -26,13 +27,15 @@ const Index = () => {
   const [email, setEmail] = React.useState("");
   const [searchQuery, setSearchQuery] = React.useState("");
   const [allPosts, setAllPosts] = useState<Post[]>([]);
+  const [filteredPosts, setFilteredPosts] = useState<Post[]>([]);
+
   useEffect(() => {
     const userPosts = JSON.parse(localStorage.getItem('blogPosts') || '[]');
     console.log('User posts loaded:', userPosts);
     setAllPosts(userPosts);
+    setFilteredPosts(userPosts);
   }, []);
-  const filteredPosts = allPosts.filter(post => selectedCategory === "All" || post.category === selectedCategory).filter(post => searchQuery === "" || post.title.toLowerCase().includes(searchQuery.toLowerCase()) || post.content.toLowerCase().includes(searchQuery.toLowerCase()) || post.excerpt.toLowerCase().includes(searchQuery.toLowerCase()));
-  console.log('Filtered posts:', filteredPosts);
+
   const handleNewsletterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (email) {
@@ -40,6 +43,7 @@ const Index = () => {
       setEmail("");
     }
   };
+
   const handleCreatePost = () => {
     if (!isSignedIn) {
       toast.error("Please sign in to create a post");
@@ -47,9 +51,21 @@ const Index = () => {
     }
     navigate('/create');
   };
-  const handleSearch = (value: string) => {
-    setSearchQuery(value);
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    const normalizedQuery = query.toLowerCase().trim();
+    const filtered = allPosts.filter(post => {
+      return (
+        post.title?.toLowerCase().includes(normalizedQuery) ||
+        post.content?.toLowerCase().includes(normalizedQuery) ||
+        post.author?.name?.toLowerCase().includes(normalizedQuery) ||
+        post.tags?.some(tag => tag.toLowerCase().includes(normalizedQuery))
+      );
+    });
+    setFilteredPosts(filtered);
   };
+
   return <div className="min-h-screen bg-gradient-to-b from-background to-muted transition-colors duration-300">
       <Navbar />
       <main className="container mx-auto px-4 py-8">
@@ -64,15 +80,22 @@ const Index = () => {
             </p>
           </div>
 
-          <div className="flex justify-between items-center gap-4">
-            <div className="relative flex-1 max-w-xl rounded-none bg-slate-50">
-              <Input type="search" placeholder="Search posts..." value={searchQuery} onChange={e => handleSearch(e.target.value)} className="pl-20 bg-zinc-100" />
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            </div>
-            <Button variant="ghost" size="icon" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} className="transition-transform hover:scale-110 font-thin text-left bg-zinc-100">
-              {theme === "dark" ? <Sun className="h-5 w-5 transition-transform hover:rotate-45" /> : <Moon className="h-5 w-5 transition-transform hover:-rotate-12" />}
-            </Button>
+          <div className="mb-6">
+            <SearchBar 
+              onSearch={handleSearch}
+              placeholder="Search posts..."
+              className="w-full md:w-96 mx-auto"
+            />
           </div>
+
+          {searchQuery && (
+            <p className="text-sm text-muted-foreground mb-4">
+              {filteredPosts.length === 0 
+                ? `No results found for "${searchQuery}"`
+                : `Showing ${filteredPosts.length} results for "${searchQuery}"`
+              }
+            </p>
+          )}
 
           <FeaturedPosts />
 
