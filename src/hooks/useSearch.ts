@@ -24,14 +24,25 @@ export function useSearch<T>(
       try {
         let supabaseQuery = supabase.from(tableName).select('*');
 
-        // Add search conditions for each field
         if (query) {
           const conditions = searchFields.map(field => 
             `${field}.ilike.%${query}%`
           );
           
-          // Combine conditions with OR
+
           supabaseQuery = supabaseQuery.or(conditions.join(','));
+        }
+
+
+        if (query) {
+
+          const tsQuery = query.trim().split(/\s+/).join(' & ');
+          
+          supabaseQuery = supabaseQuery.filter(
+            'search_vector',
+            'websearch_to_tsquery',
+            tsQuery
+          );
         }
 
         const { data, error } = await supabaseQuery;
@@ -47,7 +58,7 @@ export function useSearch<T>(
       }
     };
 
-    // Debounce the search
+   
     const timeoutId = setTimeout(fetchResults, 300);
     return () => clearTimeout(timeoutId);
   }, [query, tableName, searchFields]);
