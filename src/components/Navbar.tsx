@@ -13,7 +13,7 @@ const Navbar = () => {
   return <nav className="sticky top-0 z-50 backdrop-blur-lg bg-background/80 border-b">
       <div className="container mx-auto px-4">
         <div className="h-16 flex items-center justify-between gap-4">
-          <Link to="/" className="text-xl font-bold flex-shrink-0">ByteBound</Link>
+          <Link to="/" className="text-xxl font-bold flex-shrink-5">ByteBound</Link>
           
           <div className="flex-1 max-w-xl hidden md:flex items-center relative">
             
