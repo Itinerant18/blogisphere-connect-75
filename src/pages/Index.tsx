@@ -14,34 +14,6 @@ import { useNavigate } from 'react-router-dom';
 import type { Post } from '../types/post';
 
 const categories = ["All", "Technology", "Mindfulness", "Productivity", "Design", "Career"];
-const dummyPosts: Post[] = [
-  {
-    id: 'dummy-1',
-    title: 'The Art of Mindful Living',
-    excerpt: 'Discover how mindfulness can transform your daily life and enhance your well-being. Learn practical tips and techniques for incorporating mindfulness into your daily routine.',
-    author: 'Sarah Chen',
-    date: '2024-03-10',
-    likes: 42,
-    comments: 8,
-    image: 'https://images.unsplash.com/photo-1649972904349-6e44c42644a7',
-    category: 'Mindfulness',
-    content: 'Full content here...',
-    tags: ['mindfulness', 'wellness']
-  },
-  {
-    id: 'dummy-2',
-    title: 'Future of Technology',
-    excerpt: 'Exploring the latest trends in AI, blockchain, and quantum computing. Understanding how these technologies will shape our future and transform industries.',
-    author: 'Michael Johnson',
-    date: '2024-03-09',
-    likes: 35,
-    comments: 12,
-    image: 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d',
-    category: 'Technology',
-    content: 'Full content here...',
-    tags: ['technology', 'ai']
-  }
-];
 
 const Index = () => {
   const { theme, setTheme } = useTheme();
@@ -52,19 +24,16 @@ const Index = () => {
   const [allPosts, setAllPosts] = useState<Post[]>([]);
 
   useEffect(() => {
-    // Remove this line as it was clearing all user posts
-    // localStorage.removeItem('blogPosts');
-    
     const userPosts = JSON.parse(localStorage.getItem('blogPosts') || '[]');
-    console.log('User posts loaded:', userPosts); // Debug log
-    setAllPosts([...userPosts, ...dummyPosts]);
+    console.log('User posts loaded:', userPosts);
+    setAllPosts(userPosts);
   }, []);
 
   const filteredPosts = selectedCategory === "All" 
     ? allPosts 
     : allPosts.filter(post => post.category === selectedCategory);
 
-  console.log('Filtered posts:', filteredPosts); // Debug log
+  console.log('Filtered posts:', filteredPosts);
 
   const handleNewsletterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
