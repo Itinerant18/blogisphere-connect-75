@@ -98,11 +98,11 @@ const Index = () => {
         <section className="space-y-8 animate-fade-in">
           <div className="text-center space-y-4">
             <h1 className="text-4xl tracking-tight sm:text-2xl font-bold text-[#01346b]">
-              Welcome to BlogSphere
+              Welcome to ByteBound
               {isSignedIn && `, ${user.firstName || user.username}`}
             </h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Share your stories, connect with others, and discover amazing content.
+              Ideas Worth Sharing, Stories Worth Telling.
             </p>
           </div>
 
