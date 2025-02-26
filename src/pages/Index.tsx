@@ -24,6 +24,7 @@ const Index = () => {
   const [searchQuery, setSearchQuery] = React.useState("");
   const [allPosts, setAllPosts] = useState<Post[]>([]);
   const [filteredPosts, setFilteredPosts] = useState<Post[]>([]);
+  const [isCreating, setIsCreating] = useState(false);
 
   useEffect(() => {
     const userPosts = JSON.parse(localStorage.getItem('blogPosts') || '[]');
@@ -45,7 +46,15 @@ const Index = () => {
       toast.error("Please sign in to create a post");
       return;
     }
-    navigate('/create');
+
+    setIsCreating(true);
+    try {
+      navigate('/create');
+    } catch (error) {
+      console.error('Navigation error:', error);
+      toast.error("Unable to access create post page. Please try again.");
+      setIsCreating(false);
+    }
   };
 
   const handleSearch = (query: string) => {
@@ -124,8 +133,13 @@ const Index = () => {
         </section>
       </main>
       
-      <Button size="icon" className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg transition-transform hover:scale-110" onClick={handleCreatePost}>
-        <Plus className="h-6 w-6" />
+      <Button 
+        size="icon" 
+        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg transition-transform hover:scale-110 active:scale-95"
+        onClick={handleCreatePost}
+        disabled={isCreating}
+      >
+        <Plus className={`h-6 w-6 ${isCreating ? 'animate-spin' : ''}`} />
       </Button>
     </div>;
 };
