@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ThumbsUp, MessageSquare, Share2, MoreVertical, Trash2 } from "lucide-react";
-import { Avatar } from "@/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useUser } from "@clerk/clerk-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -33,11 +33,11 @@ const BlogPost = ({ post }: BlogPostProps) => {
     const updatedPosts = posts.filter((p: any) => p.id !== post.id);
     localStorage.setItem('blogPosts', JSON.stringify(updatedPosts));
     toast.success('Post deleted successfully');
-    // Force a page reload to reflect the changes
     window.location.reload();
   };
 
-  const navigateToProfile = () => {
+  const navigateToProfile = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent triggering the post click
     navigate(`/profile/${post.author}`);
   };
 
@@ -48,14 +48,16 @@ const BlogPost = ({ post }: BlogPostProps) => {
       <CardHeader className="space-y-0 pb-4">
         <div className="flex items-center justify-between">
           <div 
-            className="flex items-center space-x-3 cursor-pointer" 
+            className="flex items-center space-x-3 cursor-pointer group"
             onClick={navigateToProfile}
           >
-            <Avatar>
-              <div className="w-10 h-10 rounded-full bg-muted" />
+            <Avatar className="transition-transform group-hover:scale-105">
+              <AvatarFallback className="bg-primary/10">
+                {post.author[0].toUpperCase()}
+              </AvatarFallback>
             </Avatar>
             <div>
-              <p className="font-medium leading-none hover:text-primary transition-colors">
+              <p className="font-medium leading-none group-hover:text-primary transition-colors">
                 {post.author}
               </p>
               <p className="text-sm text-muted-foreground">
