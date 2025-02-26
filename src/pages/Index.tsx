@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Plus, Sun, Moon, Search } from "lucide-react";
 import BlogPost from '@/components/BlogPost';
@@ -12,16 +12,12 @@ import { useUser } from "@clerk/clerk-react";
 import { useNavigate } from 'react-router-dom';
 import type { Post } from '../types/post';
 import { SearchBar } from '@/components/SearchBar';
+
 const categories = ["All", "Technology", "Mindfulness", "Productivity", "Design", "Career"];
+
 const Index = () => {
-  const {
-    theme,
-    setTheme
-  } = useTheme();
-  const {
-    isSignedIn,
-    user
-  } = useUser();
+  const { theme, setTheme } = useTheme();
+  const { isSignedIn, user } = useUser();
   const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = React.useState("All");
   const [email, setEmail] = React.useState("");
@@ -59,7 +55,7 @@ const Index = () => {
       return (
         post.title?.toLowerCase().includes(normalizedQuery) ||
         post.content?.toLowerCase().includes(normalizedQuery) ||
-        post.author?.name?.toLowerCase().includes(normalizedQuery) ||
+        post.author?.toLowerCase().includes(normalizedQuery) ||
         post.tags?.some(tag => tag.toLowerCase().includes(normalizedQuery))
       );
     });
@@ -133,4 +129,5 @@ const Index = () => {
       </Button>
     </div>;
 };
+
 export default Index;

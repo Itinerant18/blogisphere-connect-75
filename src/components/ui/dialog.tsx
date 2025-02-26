@@ -1,70 +1,11 @@
+
 import * as React from "react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { X } from "lucide-react"
-import { forwardRef, useRef, useEffect } from 'react'
-import { Dialog as HeadlessDialog } from '@headlessui/react'
 
 import { cn } from "@/lib/utils"
 
-const Dialog = forwardRef<HTMLDivElement, DialogProps>(({
-  isOpen,
-  onClose,
-  title,
-  children,
-  ...props
-}, ref) => {
-  const initialFocusRef = useRef(null)
-  
-  // Close on escape key
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (isOpen && e.key === 'Escape') {
-        onClose()
-      }
-    }
-    
-    document.addEventListener('keydown', handleEscape)
-    return () => document.removeEventListener('keydown', handleEscape)
-  }, [isOpen, onClose])
-  
-  return (
-    <HeadlessDialog
-      open={isOpen}
-      onClose={onClose}
-      initialFocus={initialFocusRef}
-      className="relative z-50"
-      {...props}
-    >
-      {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
-      
-      {/* Dialog positioning */}
-      <div className="fixed inset-0 flex items-center justify-center p-4">
-        <HeadlessDialog.Panel 
-          ref={ref}
-          className="mx-auto max-w-sm rounded bg-white p-6 shadow-xl"
-        >
-          <HeadlessDialog.Title className="text-lg font-medium">
-            {title}
-          </HeadlessDialog.Title>
-          
-          <div className="mt-4">
-            {children}
-          </div>
-          
-          <button
-            ref={initialFocusRef}
-            onClick={onClose}
-            className="mt-4 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded"
-          >
-            Close
-          </button>
-        </HeadlessDialog.Panel>
-      </div>
-    </HeadlessDialog>
-  )
-})
-Dialog.displayName = 'Dialog'
+const Dialog = DialogPrimitive.Root
 
 const DialogTrigger = DialogPrimitive.Trigger
 
@@ -79,7 +20,7 @@ const DialogOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      "fixed inset-0 z-50 bg-black/80  data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      "fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className
     )}
     {...props}

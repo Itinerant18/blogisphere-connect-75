@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
@@ -10,6 +10,7 @@ import { useUser } from "@clerk/clerk-react";
 
 const UserProfile = () => {
   const { userId } = useParams();
+  const navigate = useNavigate();
   const { user: currentUser } = useUser();
   const [userPosts, setUserPosts] = React.useState([]);
   const [isFollowing, setIsFollowing] = React.useState(false);
