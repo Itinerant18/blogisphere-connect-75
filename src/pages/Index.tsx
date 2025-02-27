@@ -13,6 +13,7 @@ import { useUser } from "@clerk/clerk-react";
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { Post } from '../types/post';
 import { SearchBar } from '@/components/SearchBar';
+import { supabase } from "@/integrations/supabase/client";
 
 const categories = ["All", "Technology", "Mindfulness", "Productivity", "Design", "Career"];
 
@@ -28,21 +29,73 @@ const Index = () => {
   const [filteredPosts, setFilteredPosts] = useState<Post[]>([]);
   const [isCreating, setIsCreating] = useState(false);
 
+  // Fetch initial posts
   useEffect(() => {
-    const userPosts = JSON.parse(localStorage.getItem('blogPosts') || '[]');
-    console.log('User posts loaded:', userPosts);
-    setAllPosts(userPosts);
+    const fetchPosts = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('blogs')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        console.log('Initial posts loaded:', data);
+        setAllPosts(data || []);
+      } catch (error) {
+        console.error('Error fetching posts:', error);
+        toast.error('Failed to load posts');
+      }
+    };
+
+    fetchPosts();
   }, []);
 
+  // Subscribe to real-time changes
+  useEffect(() => {
+    const channel = supabase
+      .channel('public:blogs')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'blogs'
+        },
+        (payload) => {
+          console.log('Real-time update received:', payload);
+          
+          if (payload.eventType === 'INSERT') {
+            // Add new post to the list
+            setAllPosts(current => [payload.new, ...current]);
+            toast.info('New post added!');
+          } else if (payload.eventType === 'DELETE') {
+            // Remove deleted post from the list
+            setAllPosts(current => current.filter(post => post.id !== payload.old.id));
+          } else if (payload.eventType === 'UPDATE') {
+            // Update modified post in the list
+            setAllPosts(current =>
+              current.map(post =>
+                post.id === payload.new.id ? payload.new : post
+              )
+            );
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  // Filter posts based on category and search query
   useEffect(() => {
     let filtered = [...allPosts];
 
-    // Apply category filter
     if (selectedCategory !== "All") {
       filtered = filtered.filter(post => post.category === selectedCategory);
     }
 
-    // Apply search filter if exists
     if (searchQuery) {
       const normalizedQuery = searchQuery.toLowerCase().trim();
       filtered = filtered.filter(post => {
@@ -96,19 +149,19 @@ const Index = () => {
       <Navbar />
       <main className="container mx-auto px-4 py-8">
         <section className="space-y-8 animate-fade-in">
-        <div className="text-center space-y-4">
-  <h1 className="text-4xl tracking-tight sm:text-2xl font-bold text-[#01346b]">
-    Welcome to ByteBound, 
-    {isSignedIn && (
-      <span className="bg-gradient-to-r from-purple-500 to-blue-500 text-transparent bg-clip-text">
-        {user.firstName || user.username}
-      </span>
-    )}
-  </h1>
-  <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-    Ideas Worth Sharing, Stories Worth Telling.
-  </p>
-</div>
+          <div className="text-center space-y-4">
+            <h1 className="text-4xl tracking-tight sm:text-2xl font-bold text-[#01346b]">
+              Welcome to ByteBound, 
+              {isSignedIn && (
+                <span className="bg-gradient-to-r from-purple-500 to-blue-500 text-transparent bg-clip-text">
+                  {user.firstName || user.username}
+                </span>
+              )}
+            </h1>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              Ideas Worth Sharing, Stories Worth Telling.
+            </p>
+          </div>
 
           <div className="mb-6">
             <SearchBar 
