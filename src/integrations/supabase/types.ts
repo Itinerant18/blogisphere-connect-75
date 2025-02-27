@@ -168,41 +168,6 @@ export type Database = {
           },
         ]
       }
-      notifications: {
-        Row: {
-          created_at: string | null
-          id: string
-          is_read: boolean | null
-          message: string
-          type: string | null
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          is_read?: boolean | null
-          message: string
-          type?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          is_read?: boolean | null
-          message?: string
-          type?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "notifications_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       users: {
         Row: {
           avatar_url: string | null
