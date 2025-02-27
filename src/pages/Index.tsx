@@ -2,34 +2,31 @@
 import React, { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import BlogPost from '@/components/BlogPost';
 import FeaturedPosts from '@/components/FeaturedPosts';
 import Navbar from '@/components/Navbar';
-import { useTheme } from 'next-themes';
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useUser } from "@clerk/clerk-react";
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { Post } from '../types/post';
 import { SearchBar } from '@/components/SearchBar';
 import { supabase } from "@/integrations/supabase/client";
+import { WelcomeHeader } from '@/components/home/WelcomeHeader';
+import { CategoriesFilter } from '@/components/home/CategoriesFilter';
+import { NewsletterSubscription } from '@/components/home/NewsletterSubscription';
+import { PostsGrid } from '@/components/home/PostsGrid';
 
 const categories = ["All", "Technology", "Mindfulness", "Productivity", "Design", "Career"];
 
 const Index = () => {
-  const { theme, setTheme } = useTheme();
-  const { isSignedIn, user } = useUser();
+  const { isSignedIn } = useUser();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [selectedCategory, setSelectedCategory] = React.useState(searchParams.get('category') || "All");
-  const [email, setEmail] = React.useState("");
-  const [searchQuery, setSearchQuery] = React.useState("");
+  const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || "All");
+  const [searchQuery, setSearchQuery] = useState("");
   const [allPosts, setAllPosts] = useState<Post[]>([]);
   const [filteredPosts, setFilteredPosts] = useState<Post[]>([]);
   const [isCreating, setIsCreating] = useState(false);
 
-  // Fetch initial posts
   useEffect(() => {
     const fetchPosts = async () => {
       try {
@@ -40,7 +37,7 @@ const Index = () => {
         
         if (error) throw error;
         console.log('Initial posts loaded:', data);
-        setAllPosts(data || []);
+        setAllPosts(data as Post[]);
       } catch (error) {
         console.error('Error fetching posts:', error);
         toast.error('Failed to load posts');
@@ -50,7 +47,6 @@ const Index = () => {
     fetchPosts();
   }, []);
 
-  // Subscribe to real-time changes
   useEffect(() => {
     const channel = supabase
       .channel('public:blogs')
@@ -65,17 +61,14 @@ const Index = () => {
           console.log('Real-time update received:', payload);
           
           if (payload.eventType === 'INSERT') {
-            // Add new post to the list
-            setAllPosts(current => [payload.new, ...current]);
+            setAllPosts(current => [payload.new as Post, ...current]);
             toast.info('New post added!');
           } else if (payload.eventType === 'DELETE') {
-            // Remove deleted post from the list
             setAllPosts(current => current.filter(post => post.id !== payload.old.id));
           } else if (payload.eventType === 'UPDATE') {
-            // Update modified post in the list
             setAllPosts(current =>
               current.map(post =>
-                post.id === payload.new.id ? payload.new : post
+                post.id === payload.new.id ? (payload.new as Post) : post
               )
             );
           }
@@ -88,7 +81,6 @@ const Index = () => {
     };
   }, []);
 
-  // Filter posts based on category and search query
   useEffect(() => {
     let filtered = [...allPosts];
 
@@ -116,14 +108,6 @@ const Index = () => {
     setSearchParams(category === "All" ? {} : { category: category.toLowerCase() });
   };
 
-  const handleNewsletterSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (email) {
-      toast.success("Thank you for subscribing to our newsletter!");
-      setEmail("");
-    }
-  };
-
   const handleCreatePost = () => {
     if (!isSignedIn) {
       toast.error("Please sign in to create a post");
@@ -149,19 +133,7 @@ const Index = () => {
       <Navbar />
       <main className="container mx-auto px-4 py-8">
         <section className="space-y-8 animate-fade-in">
-          <div className="text-center space-y-4">
-            <h1 className="text-4xl tracking-tight sm:text-2xl font-bold text-[#01346b]">
-              Welcome to ByteBound, 
-              {isSignedIn && (
-                <span className="bg-gradient-to-r from-purple-500 to-blue-500 text-transparent bg-clip-text">
-                  {user.firstName || user.username}
-                </span>
-              )}
-            </h1>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Ideas Worth Sharing, Stories Worth Telling.
-            </p>
-          </div>
+          <WelcomeHeader />
 
           <div className="mb-6">
             <SearchBar 
@@ -182,61 +154,19 @@ const Index = () => {
 
           <FeaturedPosts />
 
-          <div className="flex flex-wrap gap-2 justify-center">
-            {categories.map(category => (
-              <Button
-                key={category}
-                variant={selectedCategory === category ? "default" : "outline"}
-                onClick={() => handleCategoryChange(category)}
-                className="rounded-full transition-all hover:scale-105 animate-fade-in"
-              >
-                {category}
-              </Button>
-            ))}
-          </div>
+          <CategoriesFilter 
+            categories={categories}
+            selectedCategory={selectedCategory}
+            onCategoryChange={handleCategoryChange}
+          />
 
-          {selectedCategory !== "All" && (
-            <p className="text-center text-muted-foreground">
-              Showing posts in {selectedCategory} category
-            </p>
-          )}
+          <NewsletterSubscription />
 
-          <Card className="p-6 max-w-xl mx-auto bg-primary/5 backdrop-blur-sm">
-            <form onSubmit={handleNewsletterSubmit} className="space-y-4">
-              <h3 className="text-xl font-semibold text-center">
-                Subscribe to Our Newsletter
-              </h3>
-              <p className="text-muted-foreground text-center">
-                Get the latest posts delivered right to your inbox.
-              </p>
-              <div className="flex gap-2">
-                <Input 
-                  type="email" 
-                  placeholder="Enter your email" 
-                  value={email} 
-                  onChange={e => setEmail(e.target.value)} 
-                  required 
-                />
-                <Button type="submit">Subscribe</Button>
-              </div>
-            </form>
-          </Card>
-
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {filteredPosts.length > 0 ? (
-              filteredPosts.map(post => (
-                <BlogPost key={post.id} post={post} />
-              ))
-            ) : (
-              <div className="col-span-full text-center py-8 text-muted-foreground">
-                {searchQuery 
-                  ? 'No posts found matching your search criteria.' 
-                  : selectedCategory !== "All"
-                    ? `No posts found in the ${selectedCategory} category.`
-                    : 'No posts found. Create your first post!'}
-              </div>
-            )}
-          </div>
+          <PostsGrid 
+            posts={filteredPosts}
+            searchQuery={searchQuery}
+            selectedCategory={selectedCategory}
+          />
         </section>
       </main>
       
