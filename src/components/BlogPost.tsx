@@ -1,15 +1,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ThumbsUp, MessageSquare, Share2, MoreVertical, Trash2 } from "lucide-react";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { useUser } from "@clerk/clerk-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { PostHeader } from './blog/PostHeader';
+import { PostImage } from './blog/PostImage';
+import { PostActions } from './blog/PostActions';
 
 interface BlogPostProps {
   post: {
@@ -65,7 +64,6 @@ const BlogPost = ({ post }: BlogPostProps) => {
 
     try {
       if (isLiked) {
-        // Unlike the post
         await supabase
           .from('likes')
           .delete()
@@ -75,7 +73,6 @@ const BlogPost = ({ post }: BlogPostProps) => {
         setLikesCount(prev => prev - 1);
         setIsLiked(false);
       } else {
-        // Like the post
         await supabase
           .from('likes')
           .insert([
@@ -117,71 +114,31 @@ const BlogPost = ({ post }: BlogPostProps) => {
     navigate(`/profile/${post.author}`);
   };
 
+  const navigateToPost = () => navigate(`/post/${post.id}`);
+
   const isAuthor = user?.username === post.author || user?.firstName === post.author;
 
   return (
     <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg animate-fade-in">
-      <CardHeader className="space-y-0 pb-4">
-        <div className="flex items-center justify-between">
-          <div 
-            className="flex items-center space-x-3 cursor-pointer group"
-            onClick={navigateToProfile}
-          >
-            <Avatar className="transition-transform group-hover:scale-105">
-              <AvatarFallback className="bg-primary/10">
-                {post.author[0].toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <p className="font-medium leading-none group-hover:text-primary transition-colors">
-                {post.author}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {new Date(post.date).toLocaleDateString()}
-              </p>
-            </div>
-          </div>
-          {isAuthor && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-40">
-                <DropdownMenuItem 
-                  className="text-destructive"
-                  onClick={handleDeletePost}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete Post
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-        </div>
-      </CardHeader>
+      <PostHeader
+        author={post.author}
+        date={post.date}
+        isAuthor={isAuthor}
+        onAuthorClick={navigateToProfile}
+        onDelete={handleDeletePost}
+      />
       
-      <div 
-        className="aspect-video relative overflow-hidden cursor-pointer"
-        onClick={() => navigate(`/post/${post.id}`)}
-      >
-        <img
-          src={post.image}
-          alt={post.title}
-          className="object-cover w-full h-full transition-transform duration-300 hover:scale-105"
-        />
-        {post.category && (
-          <Badge className="absolute top-2 right-2">
-            {post.category}
-          </Badge>
-        )}
-      </div>
+      <PostImage
+        image={post.image}
+        title={post.title}
+        category={post.category}
+        onClick={navigateToPost}
+      />
       
       <CardContent className="pt-6">
         <h3 
           className="text-2xl font-semibold tracking-tight hover:text-primary transition-colors cursor-pointer"
-          onClick={() => navigate(`/post/${post.id}`)}
+          onClick={navigateToPost}
         >
           {post.title}
         </h3>
@@ -191,46 +148,19 @@ const BlogPost = ({ post }: BlogPostProps) => {
       </CardContent>
       
       <CardFooter className="flex justify-between pt-0">
-        <div className="flex items-center space-x-2">
-          <Button 
-            variant={isLiked ? "default" : "ghost"} 
-            size="sm" 
-            className="space-x-2"
-            onClick={handleLike}
-          >
-            <ThumbsUp className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
-            <span>{likesCount}</span>
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="space-x-2"
-            onClick={handleCommentClick}
-          >
-            <MessageSquare className="w-4 h-4" />
-            <span>{post.comments}</span>
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={() => {
-              navigator.share?.({
-                title: post.title,
-                text: post.excerpt,
-                url: window.location.href
-              }).catch(() => {
-                navigator.clipboard.writeText(window.location.href);
-                toast.success("Link copied to clipboard!");
-              });
-            }}
-          >
-            <Share2 className="w-4 h-4" />
-          </Button>
-        </div>
+        <PostActions
+          isLiked={isLiked}
+          likesCount={likesCount}
+          commentsCount={post.comments}
+          onLike={handleLike}
+          onComment={handleCommentClick}
+          title={post.title}
+          excerpt={post.excerpt}
+        />
         <Button 
           variant="outline" 
           size="sm"
-          onClick={() => navigate(`/post/${post.id}`)}
+          onClick={navigateToPost}
         >
           Read More
         </Button>
