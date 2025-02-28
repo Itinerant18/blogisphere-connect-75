@@ -1,9 +1,8 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from 'react-router-dom';
-import { supabase } from "@/integrations/supabase/client";
+import { getFeaturedPosts } from "@/integrations/firebase/blogService";
 import { toast } from "sonner";
 import type { Post } from '@/types/post';
 
@@ -16,21 +15,12 @@ const FeaturedPosts = () => {
     const fetchFeaturedPost = async () => {
       try {
         setLoading(true);
-        const { data, error } = await supabase
-          .from('blogs')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+        const posts = await getFeaturedPosts(1);
         
-        if (error && error.code !== 'PGRST116') {
-          // PGRST116 is the error for no rows returned
-          console.error('Error fetching featured post:', error);
-          throw error;
-        }
-
-        console.log('Featured post data:', data);
-        if (data) {
+        console.log('Featured post data:', posts[0] || null);
+        if (posts && posts.length > 0) {
+          const data = posts[0];
+          
           // Process content if it's stored as JSON
           let postContent = data.content;
           let category = undefined;
@@ -49,27 +39,25 @@ const FeaturedPosts = () => {
               }
             }
           } catch (e) {
-            // If parsing fails, use the original content
-            console.log("Content is not in JSON format, using as is");
+            // If parsing fails, use the content as is
+            console.log('Content is not in JSON format');
           }
-
-          setFeaturedPost({
-            id: data.id,
-            title: data.title,
+          
+          // Create a processed post object with the extracted data
+          const processedPost: Post = {
+            ...data,
             content: postContent,
-            excerpt: postContent.substring(0, 150) + '...',
-            author: data.user_id || 'Anonymous',
-            date: data.created_at,
-            likes: 0,
-            comments: 0,
-            image: data.image_url || '/placeholder.svg',
-            category: category || 'Uncategorized',
-            tags: tags || []
-          });
+            category,
+            tags,
+          };
+          
+          setFeaturedPost(processedPost);
+        } else {
+          setFeaturedPost(null);
         }
       } catch (error) {
-        console.error('Failed to fetch featured post:', error);
-        toast.error('Could not load featured post');
+        console.error('Error fetching featured post:', error);
+        toast.error('Failed to load featured post');
       } finally {
         setLoading(false);
       }
@@ -114,7 +102,7 @@ const FeaturedPosts = () => {
             <div className="relative h-[400px] md:h-auto">
               <img 
                 alt={featuredPost.title} 
-                src={featuredPost.image}
+                src={featuredPost.image_url || '/placeholder.svg'}
                 className="absolute inset-0 w-full h-full object-cover" 
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
@@ -132,9 +120,9 @@ const FeaturedPosts = () => {
                   By{' '}
                   <span 
                     className="text-primary cursor-pointer hover:underline"
-                    onClick={() => navigate(`/profile/${featuredPost.author}`)}
+                    onClick={() => navigate(`/profile/${featuredPost.user_id || 'Anonymous'}`)}
                   >
-                    {featuredPost.author}
+                    {featuredPost.user_id || 'Anonymous'}
                   </span>
                 </p>
               </div>
