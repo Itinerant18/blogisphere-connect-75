@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +10,7 @@ import Navbar from '@/components/Navbar';
 import { toast } from "sonner";
 import { useUser } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import type { Post } from '../types/post';
 
 const categories = [
@@ -28,6 +30,7 @@ const CreatePost = () => {
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   React.useEffect(() => {
     if (!isSignedIn) {
@@ -67,34 +70,52 @@ const CreatePost = () => {
     setTags(tags.filter(tag => tag !== tagToRemove));
   };
 
-  const handlePublish = () => {
+  const handlePublish = async () => {
     if (!title.trim() || !content.trim() || !selectedCategory) {
       toast.error("Please fill in all required fields");
       return;
     }
     
-    const newPost: Post = {
-      id: Date.now().toString(),
-      title: title.trim(),
-      excerpt: content.substring(0, 150) + "...",
-      author: user?.username || user?.firstName || "Anonymous",
-      date: new Date().toISOString(),
-      likes: 0,
-      comments: 0,
-      image: imageUrl || "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d",
-      category: selectedCategory,
-      content: content.trim(),
-      tags: tags
-    };
-
-    // Get existing posts or initialize empty array
-    const existingPosts = JSON.parse(localStorage.getItem('blogPosts') || '[]');
+    if (!isSignedIn || !user) {
+      toast.error("You must be signed in to publish a post");
+      return;
+    }
     
-    // Add new post to beginning of array
-    localStorage.setItem('blogPosts', JSON.stringify([newPost, ...existingPosts]));
-    
-    toast.success("Post published successfully!");
-    navigate("/");
+    try {
+      setIsSubmitting(true);
+      
+      // Create new post in Supabase
+      const { data, error } = await supabase
+        .from('blogs')
+        .insert([
+          {
+            title: title.trim(),
+            content: content.trim(),
+            image_url: imageUrl || "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d",
+            user_id: user.id,
+            // Store category and tags as metadata in the content for now
+            // In a real app, you might want separate columns for these
+            category: selectedCategory,
+            tags: tags
+          }
+        ])
+        .select()
+        .single();
+        
+      if (error) {
+        console.error("Error publishing post:", error);
+        throw error;
+      }
+      
+      toast.success("Post published successfully!");
+      navigate("/");
+      
+    } catch (error) {
+      console.error("Failed to publish post:", error);
+      toast.error("Failed to publish post. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleSaveDraft = () => {
@@ -102,6 +123,9 @@ const CreatePost = () => {
       toast.error("Please add a title to save as draft");
       return;
     }
+    
+    // For now, we'll just show a success message
+    // In a real app, you'd save this to a drafts collection
     toast.success("Draft saved successfully!");
   };
 
@@ -224,8 +248,11 @@ const CreatePost = () => {
                 <Save className="h-4 w-4 mr-2" />
                 Save Draft
               </Button>
-              <Button onClick={handlePublish}>
-                Publish
+              <Button 
+                onClick={handlePublish} 
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Publishing..." : "Publish"}
               </Button>
             </div>
           </CardContent>
