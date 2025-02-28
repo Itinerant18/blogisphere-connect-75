@@ -116,6 +116,11 @@ const FeaturedPosts = () => {
                 alt={featuredPost.title} 
                 src={featuredPost.image}
                 className="absolute inset-0 w-full h-full object-cover" 
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.onerror = null;
+                  target.src = '/placeholder.svg';
+                }}
               />
             </div>
             <CardContent className="flex flex-col justify-center p-8 space-y-6">
