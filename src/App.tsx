@@ -10,6 +10,7 @@ import PostDetail from "./pages/PostDetail";
 import UserProfile from "./pages/UserProfile";
 import Settings from "./pages/Settings";
 import Notifications from "./pages/Notifications";
+import DatabaseMigration from "./pages/admin/DatabaseMigration";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,7 @@ const App = () => (
           <Route path="/profile/:userId" element={<UserProfile />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/notifications" element={<Notifications />} />
+          <Route path="/admin/migration" element={<DatabaseMigration />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
