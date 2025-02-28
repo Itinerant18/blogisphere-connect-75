@@ -60,6 +60,65 @@ This project is built with .
 - shadcn-ui
 - Tailwind CSS
 
+## Firebase Setup
+
+### 1. Create a Firebase Project
+
+1. Go to the [Firebase Console](https://console.firebase.google.com/)
+2. Click on "Add project"
+3. Enter a project name (e.g., "Blogisphere Connect")
+4. Enable Google Analytics if desired (recommended)
+5. Click "Create project"
+
+### 2. Set Up Firebase Services
+
+#### Enable Firestore Database
+
+1. In your Firebase project, go to "Firestore Database" in the left sidebar
+2. Click "Create database"
+3. Start in production mode or test mode (you can change this later)
+4. Choose a location closest to your users
+5. Click "Enable"
+
+#### Set Up Firebase Storage
+
+1. Go to "Storage" in the left sidebar
+2. Click "Get started"
+3. Accept the default security rules or modify them
+4. Choose a location closest to your users
+5. Click "Done"
+
+### 3. Configure Firebase in Your Project
+
+1. In the Firebase console, click on the gear icon (⚙️) next to "Project Overview" and select "Project settings"
+2. Scroll down to "Your apps" section
+3. If you haven't added an app yet, click on the web icon (</>) to add a web app
+4. Register your app with a nickname (e.g., "Blogisphere Web")
+5. Copy the firebaseConfig object
+
+### 4. Set Up Environment Variables
+
+1. Create a `.env` file in the root of your project (copy from `.env.example`)
+2. Fill in the Firebase configuration values from the previous step:
+
+```
+VITE_FIREBASE_API_KEY=your_api_key_here
+VITE_FIREBASE_AUTH_DOMAIN=your_project_id.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your_project_id
+VITE_FIREBASE_STORAGE_BUCKET=your_project_id.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
+VITE_FIREBASE_APP_ID=your_app_id
+VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id
+```
+
+### 5. Migrate Data from Supabase to Firebase
+
+1. Make sure both Supabase and Firebase configurations are set up
+2. Navigate to `/admin/migration` in your application
+3. Select "Firebase" as the target database
+4. Click "Migrate to Firebase" to start the migration process
+5. Wait for the migration to complete
+
 ## Deployment Guide
 
 ### Deploying to Netlify
