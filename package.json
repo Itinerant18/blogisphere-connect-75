@@ -15,7 +15,8 @@
     "firebase:deploy:hosting": "npm run build && firebase deploy --only hosting",
     "firebase:deploy:rules": "firebase deploy --only firestore:rules,storage:rules",
     "test:mongodb": "node scripts/test-mongodb-connection.js",
-    "mongodb:create-indexes": "npm run build && node scripts/create-mongodb-indexes.js"
+    "mongodb:setup": "node scripts/setup-mongodb.js",
+    "mongodb:create-indexes": "node scripts/create-mongodb-indexes.js"
   },
   "dependencies": {
     "@clerk/clerk-react": "^5.23.0",
