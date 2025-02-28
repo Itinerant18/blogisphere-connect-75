@@ -34,12 +34,12 @@ export const PostsGrid: React.FC<PostsGridProps> = ({
           id: post.id,
           title: post.title || 'Untitled Post',
           content: post.content || '',
-          excerpt: post.content ? (post.content.substring(0, 150) + '...') : 'No content',
-          author: post.author || post.user_id || 'Anonymous',
-          date: post.date || post.created_at || new Date().toISOString(),
+          excerpt: post.excerpt || (post.content ? (post.content.substring(0, 150) + '...') : 'No content'),
+          author: post.author || (post.user_id ? post.user_id : 'Anonymous'),
+          date: post.date || (post.created_at ? post.created_at : new Date().toISOString()),
           likes: post.likes || 0,
           comments: post.comments || 0,
-          image: post.image || post.image_url || '/placeholder.svg',
+          image: post.image || (post.image_url ? post.image_url : '/placeholder.svg'),
           category: post.category || 'Uncategorized',
           tags: post.tags || []
         };

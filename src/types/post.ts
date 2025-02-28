@@ -2,7 +2,7 @@
 export interface Post {
   id: string;
   title: string;
-  excerpt: string;
+  excerpt?: string;
   author: string;
   date: string;
   likes: number;
@@ -11,4 +11,8 @@ export interface Post {
   category?: string;
   content: string;
   tags?: string[];
+  // Supabase specific fields
+  user_id?: string;
+  created_at?: string;
+  image_url?: string;
 }
