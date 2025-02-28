@@ -1,7 +1,11 @@
 import { MongoClient, ServerApiVersion } from 'mongodb';
 
-// Replace the placeholder with your MongoDB connection string
-const uri = import.meta.env.VITE_MONGODB_URI || "mongodb+srv://<username>:<password>@<cluster-url>/?retryWrites=true&w=majority";
+// Get MongoDB connection string from environment variables
+const uri = import.meta.env.VITE_MONGODB_URI;
+
+if (!uri) {
+  console.error('MongoDB connection string is missing! Please check your .env file.');
+}
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -9,7 +13,10 @@ const client = new MongoClient(uri, {
     version: ServerApiVersion.v1,
     strict: true,
     deprecationErrors: true,
-  }
+  },
+  maxPoolSize: 10, // Maintain up to 10 socket connections
+  connectTimeoutMS: 5000, // Give up initial connection after 5 seconds
+  socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
 });
 
 let clientPromise: Promise<MongoClient>;
@@ -21,7 +28,11 @@ let globalWithMongo = globalThis as unknown as {
 };
 
 if (!globalWithMongo._mongoClientPromise) {
-  globalWithMongo._mongoClientPromise = client.connect();
+  globalWithMongo._mongoClientPromise = client.connect()
+    .catch(err => {
+      console.error('Failed to connect to MongoDB:', err);
+      throw err;
+    });
 }
 clientPromise = globalWithMongo._mongoClientPromise;
 
@@ -30,12 +41,22 @@ export { clientPromise };
 
 // Helper function to get the database
 export async function getDatabase(dbName: string = 'blogisphere') {
-  const client = await clientPromise;
-  return client.db(dbName);
+  try {
+    const client = await clientPromise;
+    return client.db(dbName);
+  } catch (error) {
+    console.error(`Error getting database ${dbName}:`, error);
+    throw error;
+  }
 }
 
 // Helper function to get a collection
 export async function getCollection(collectionName: string, dbName: string = 'blogisphere') {
-  const db = await getDatabase(dbName);
-  return db.collection(collectionName);
+  try {
+    const db = await getDatabase(dbName);
+    return db.collection(collectionName);
+  } catch (error) {
+    console.error(`Error getting collection ${collectionName}:`, error);
+    throw error;
+  }
 }
