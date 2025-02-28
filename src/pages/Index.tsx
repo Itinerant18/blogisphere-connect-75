@@ -48,6 +48,7 @@ const Index = () => {
   }, []);
 
   useEffect(() => {
+    // Make sure the channel name is unique and consistent across all clients
     const channel = supabase
       .channel('public:blogs')
       .on(
