@@ -21,6 +21,8 @@ interface BlogPostProps {
     comments: number;
     image: string;
     category?: string;
+    content?: string;
+    tags?: string[];
   };
 }
 
@@ -28,26 +30,60 @@ const BlogPost = ({ post }: BlogPostProps) => {
   const navigate = useNavigate();
   const { user, isSignedIn } = useUser();
   const [isLiked, setIsLiked] = useState(false);
-  const [likesCount, setLikesCount] = useState(post.likes);
+  const [likesCount, setLikesCount] = useState(post.likes || 0);
+  const [commentsCount, setCommentsCount] = useState(post.comments || 0);
 
   useEffect(() => {
-    if (isSignedIn) {
+    if (isSignedIn && user?.id) {
       checkIfPostIsLiked();
+      fetchLikesCount();
+      fetchCommentsCount();
     }
-  }, [isSignedIn, post.id]);
+  }, [isSignedIn, post.id, user?.id]);
 
   const checkIfPostIsLiked = async () => {
+    if (!user?.id) return;
+    
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('likes')
         .select('*')
         .eq('blog_id', post.id)
         .eq('user_id', user?.id)
-        .single();
+        .maybeSingle();
       
+      if (error) throw error;
       setIsLiked(!!data);
     } catch (error) {
       console.error('Error checking like status:', error);
+    }
+  };
+
+  const fetchLikesCount = async () => {
+    try {
+      const { count, error } = await supabase
+        .from('likes')
+        .select('*', { count: 'exact', head: true })
+        .eq('blog_id', post.id);
+      
+      if (error) throw error;
+      if (count !== null) setLikesCount(count);
+    } catch (error) {
+      console.error('Error fetching likes count:', error);
+    }
+  };
+
+  const fetchCommentsCount = async () => {
+    try {
+      const { count, error } = await supabase
+        .from('comments')
+        .select('*', { count: 'exact', head: true })
+        .eq('blog_id', post.id);
+      
+      if (error) throw error;
+      if (count !== null) setCommentsCount(count);
+    } catch (error) {
+      console.error('Error fetching comments count:', error);
     }
   };
 
@@ -70,7 +106,7 @@ const BlogPost = ({ post }: BlogPostProps) => {
           .eq('blog_id', post.id)
           .eq('user_id', user?.id);
         
-        setLikesCount(prev => prev - 1);
+        setLikesCount(prev => Math.max(0, prev - 1));
         setIsLiked(false);
       } else {
         await supabase
@@ -101,12 +137,20 @@ const BlogPost = ({ post }: BlogPostProps) => {
     navigate(`/post/${post.id}`);
   };
 
-  const handleDeletePost = () => {
-    const posts = JSON.parse(localStorage.getItem('blogPosts') || '[]');
-    const updatedPosts = posts.filter((p: any) => p.id !== post.id);
-    localStorage.setItem('blogPosts', JSON.stringify(updatedPosts));
-    toast.success('Post deleted successfully');
-    window.location.reload();
+  const handleDeletePost = async () => {
+    try {
+      const { error } = await supabase
+        .from('blogs')
+        .delete()
+        .eq('id', post.id);
+      
+      if (error) throw error;
+      
+      toast.success('Post deleted successfully');
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      toast.error('Failed to delete post');
+    }
   };
 
   const navigateToProfile = (e: React.MouseEvent) => {
@@ -116,7 +160,7 @@ const BlogPost = ({ post }: BlogPostProps) => {
 
   const navigateToPost = () => navigate(`/post/${post.id}`);
 
-  const isAuthor = user?.username === post.author || user?.firstName === post.author;
+  const isAuthor = user?.id === post.author;
 
   return (
     <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg animate-fade-in">
@@ -151,7 +195,7 @@ const BlogPost = ({ post }: BlogPostProps) => {
         <PostActions
           isLiked={isLiked}
           likesCount={likesCount}
-          commentsCount={post.comments}
+          commentsCount={commentsCount}
           onLike={handleLike}
           onComment={handleCommentClick}
           title={post.title}
