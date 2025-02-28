@@ -29,19 +29,41 @@ export const PostsGrid: React.FC<PostsGridProps> = ({
   return (
     <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
       {posts.map(post => {
+        // Process content if it's stored as JSON
+        let postContent = post.content;
+        let category = post.category;
+        let tags = post.tags;
+        
+        try {
+          // Try to parse the content as JSON
+          const parsedContent = JSON.parse(post.content);
+          if (parsedContent && typeof parsedContent === 'object') {
+            if (parsedContent.text) {
+              postContent = parsedContent.text;
+            }
+            if (parsedContent.metadata) {
+              category = parsedContent.metadata.category || category;
+              tags = parsedContent.metadata.tags || tags;
+            }
+          }
+        } catch (e) {
+          // If parsing fails, use the original content
+          console.log("Content is not in JSON format, using as is");
+        }
+        
         // Ensure post has all required fields
         const processedPost = {
           id: post.id,
           title: post.title || 'Untitled Post',
-          content: post.content || '',
-          excerpt: post.excerpt || (post.content ? (post.content.substring(0, 150) + '...') : 'No content'),
+          content: postContent || '',
+          excerpt: post.excerpt || (postContent ? (postContent.substring(0, 150) + '...') : 'No content'),
           author: post.author || (post.user_id ? post.user_id : 'Anonymous'),
           date: post.date || (post.created_at ? post.created_at : new Date().toISOString()),
           likes: post.likes || 0,
           comments: post.comments || 0,
           image: post.image || (post.image_url ? post.image_url : '/placeholder.svg'),
-          category: post.category || 'Uncategorized',
-          tags: post.tags || []
+          category: category || 'Uncategorized',
+          tags: tags || []
         };
         
         return (

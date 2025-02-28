@@ -84,23 +84,26 @@ const CreatePost = () => {
     try {
       setIsSubmitting(true);
       
+      // Store the category and tags within the content field as JSON
+      const enhancedContent = JSON.stringify({
+        text: content.trim(),
+        metadata: {
+          category: selectedCategory,
+          tags: tags
+        }
+      });
+      
       // Create new post in Supabase
       const { data, error } = await supabase
         .from('blogs')
         .insert([
           {
             title: title.trim(),
-            content: content.trim(),
+            content: enhancedContent,
             image_url: imageUrl || "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d",
-            user_id: user.id,
-            // Store category and tags as metadata in the content for now
-            // In a real app, you might want separate columns for these
-            category: selectedCategory,
-            tags: tags
+            user_id: user.id
           }
-        ])
-        .select()
-        .single();
+        ]);
         
       if (error) {
         console.error("Error publishing post:", error);

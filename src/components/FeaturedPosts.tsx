@@ -21,7 +21,7 @@ const FeaturedPosts = () => {
           .select('*')
           .order('created_at', { ascending: false })
           .limit(1)
-          .single();
+          .maybeSingle();
         
         if (error && error.code !== 'PGRST116') {
           // PGRST116 is the error for no rows returned
@@ -31,18 +31,40 @@ const FeaturedPosts = () => {
 
         console.log('Featured post data:', data);
         if (data) {
+          // Process content if it's stored as JSON
+          let postContent = data.content;
+          let category = undefined;
+          let tags = undefined;
+          
+          try {
+            // Try to parse the content as JSON
+            const parsedContent = JSON.parse(data.content);
+            if (parsedContent && typeof parsedContent === 'object') {
+              if (parsedContent.text) {
+                postContent = parsedContent.text;
+              }
+              if (parsedContent.metadata) {
+                category = parsedContent.metadata.category;
+                tags = parsedContent.metadata.tags;
+              }
+            }
+          } catch (e) {
+            // If parsing fails, use the original content
+            console.log("Content is not in JSON format, using as is");
+          }
+
           setFeaturedPost({
             id: data.id,
             title: data.title,
-            content: data.content,
-            excerpt: data.content?.substring(0, 150) + '...',
+            content: postContent,
+            excerpt: postContent.substring(0, 150) + '...',
             author: data.user_id || 'Anonymous',
             date: data.created_at,
             likes: 0,
             comments: 0,
             image: data.image_url || '/placeholder.svg',
-            category: data.category || 'Uncategorized',
-            tags: data.tags || []
+            category: category || 'Uncategorized',
+            tags: tags || []
           });
         }
       } catch (error) {
