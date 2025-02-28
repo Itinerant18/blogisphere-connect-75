@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -9,7 +8,7 @@ import { useUser } from "@clerk/clerk-react";
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { Post } from '../types/post';
 import { SearchBar } from '@/components/SearchBar';
-import { supabase } from "@/integrations/supabase/client";
+import { getAllPosts, subscribeToPostUpdates } from "@/integrations/firebase/blogService";
 import { WelcomeHeader } from '@/components/home/WelcomeHeader';
 import { CategoriesFilter } from '@/components/home/CategoriesFilter';
 import { NewsletterSubscription } from '@/components/home/NewsletterSubscription';
@@ -30,14 +29,9 @@ const Index = () => {
   useEffect(() => {
     const fetchPosts = async () => {
       try {
-        const { data, error } = await supabase
-          .from('blogs')
-          .select('*')
-          .order('created_at', { ascending: false });
-        
-        if (error) throw error;
-        console.log('Initial posts loaded:', data);
-        setAllPosts(data as Post[]);
+        const posts = await getAllPosts();
+        console.log('Initial posts loaded:', posts);
+        setAllPosts(posts);
       } catch (error) {
         console.error('Error fetching posts:', error);
         toast.error('Failed to load posts');
@@ -48,37 +42,15 @@ const Index = () => {
   }, []);
 
   useEffect(() => {
-    // Make sure the channel name is unique and consistent across all clients
-    const channel = supabase
-      .channel('public:blogs')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'blogs'
-        },
-        (payload) => {
-          console.log('Real-time update received:', payload);
-          
-          if (payload.eventType === 'INSERT') {
-            setAllPosts(current => [payload.new as Post, ...current]);
-            toast.info('New post added!');
-          } else if (payload.eventType === 'DELETE') {
-            setAllPosts(current => current.filter(post => post.id !== payload.old.id));
-          } else if (payload.eventType === 'UPDATE') {
-            setAllPosts(current =>
-              current.map(post =>
-                post.id === payload.new.id ? (payload.new as Post) : post
-              )
-            );
-          }
-        }
-      )
-      .subscribe();
+    // Subscribe to real-time updates
+    const unsubscribe = subscribeToPostUpdates((posts) => {
+      console.log('Real-time update received:', posts);
+      setAllPosts(posts);
+    });
 
+    // Cleanup subscription on component unmount
     return () => {
-      supabase.removeChannel(channel);
+      unsubscribe();
     };
   }, []);
 
@@ -86,15 +58,32 @@ const Index = () => {
     let filtered = [...allPosts];
 
     if (selectedCategory !== "All") {
-      filtered = filtered.filter(post => post.category === selectedCategory);
+      filtered = filtered.filter(post => {
+        // Parse content to extract category if it's stored in JSON format
+        try {
+          const contentObj = JSON.parse(post.content);
+          return contentObj.metadata?.category === selectedCategory;
+        } catch {
+          return post.category === selectedCategory;
+        }
+      });
     }
 
     if (searchQuery) {
       const normalizedQuery = searchQuery.toLowerCase().trim();
       filtered = filtered.filter(post => {
+        // Parse content to search within it if it's stored in JSON format
+        let contentText = post.content;
+        try {
+          const contentObj = JSON.parse(post.content);
+          contentText = contentObj.text || post.content;
+        } catch {
+          // Use the content as is if it's not JSON
+        }
+        
         return (
           post.title?.toLowerCase().includes(normalizedQuery) ||
-          post.content?.toLowerCase().includes(normalizedQuery) ||
+          contentText?.toLowerCase().includes(normalizedQuery) ||
           post.author?.toLowerCase().includes(normalizedQuery) ||
           post.tags?.some(tag => tag.toLowerCase().includes(normalizedQuery))
         );
@@ -102,7 +91,7 @@ const Index = () => {
     }
 
     setFilteredPosts(filtered);
-  }, [selectedCategory, searchQuery, allPosts]);
+  }, [allPosts, selectedCategory, searchQuery]);
 
   const handleCategoryChange = (category: string) => {
     setSelectedCategory(category);
