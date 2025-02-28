@@ -9,7 +9,7 @@ import Navbar from '@/components/Navbar';
 import { toast } from "sonner";
 import { useUser } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { createPost, uploadImage } from "@/integrations/firebase/blogService";
 import type { Post } from '../types/post';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -93,25 +93,31 @@ const CreatePost = () => {
         }
       });
       
-      // Generate a UUID for the user_id field
-      const generatedUuid = uuidv4();
-      
-      // Create new post in Supabase
-      const { data, error } = await supabase
-        .from('blogs')
-        .insert([
-          {
-            title: title.trim(),
-            content: enhancedContent,
-            image_url: imageUrl || "/placeholder.svg",
-            user_id: generatedUuid
-          }
-        ]);
+      // Handle image upload if there's a file
+      let finalImageUrl = imageUrl;
+      if (imageUrl && imageUrl.startsWith('data:')) {
+        // Convert base64 to file
+        const response = await fetch(imageUrl);
+        const blob = await response.blob();
+        const file = new File([blob], 'image.jpg', { type: blob.type });
         
-      if (error) {
-        console.error("Error publishing post:", error);
-        throw error;
+        // Upload to Firebase Storage
+        finalImageUrl = await uploadImage(file);
       }
+      
+      // Create new post in Firebase
+      const result = await createPost({
+        title: title.trim(),
+        content: enhancedContent,
+        image_url: finalImageUrl || "/placeholder.svg",
+        user_id: user.id,
+        // Add other required fields for the Post type
+        author: user.fullName || user.username || 'Anonymous',
+        date: new Date().toISOString(),
+        likes: 0,
+        comments: 0,
+        image: finalImageUrl || "/placeholder.svg",
+      });
       
       toast.success("Post published successfully!");
       navigate("/");
