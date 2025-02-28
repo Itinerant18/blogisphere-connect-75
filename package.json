@@ -13,7 +13,9 @@
     "firebase:init": "firebase init",
     "firebase:deploy": "npm run build && firebase deploy",
     "firebase:deploy:hosting": "npm run build && firebase deploy --only hosting",
-    "firebase:deploy:rules": "firebase deploy --only firestore:rules,storage:rules"
+    "firebase:deploy:rules": "firebase deploy --only firestore:rules,storage:rules",
+    "test:mongodb": "node scripts/test-mongodb-connection.js",
+    "mongodb:create-indexes": "npm run build && node scripts/create-mongodb-indexes.js"
   },
   "dependencies": {
     "@clerk/clerk-react": "^5.23.0",
@@ -53,11 +55,12 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
     "date-fns": "^3.6.0",
+    "dotenv": "^16.4.7",
     "embla-carousel-react": "^8.3.0",
     "firebase": "^10.8.0",
     "input-otp": "^1.2.4",
     "lucide-react": "^0.462.0",
-    "mongodb": "^6.3.0",
+    "mongodb": "^6.13.1",
     "next-themes": "^0.3.0",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",
