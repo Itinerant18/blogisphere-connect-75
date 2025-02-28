@@ -60,6 +60,53 @@ This project is built with .
 - shadcn-ui
 - Tailwind CSS
 
+## Deployment Guide
+
+### Deploying to Netlify
+
+1. Push your code to a Git repository (GitHub, GitLab, etc.)
+2. Log in to Netlify and create a new site from Git
+3. Select your repository and configure build settings:
+   - Build command: `npm run build`
+   - Publish directory: `dist`
+
+### Environment Variables
+
+Make sure to set the following environment variables in your Netlify dashboard:
+
+```
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+### Production Setup
+
+1. **Clerk Authentication**: Replace the development key in `src/main.tsx` with a production key from your Clerk dashboard to remove the development warning.
+
+2. **Supabase Database**: Ensure your Supabase database has the correct schema:
+   - The `blogs` table should have a `user_id` column with the UUID data type
+   - Other required columns: `title`, `content`, `image_url`
+
+## Troubleshooting
+
+### Common Issues
+
+1. **404 Errors for Images**: Make sure all image paths are correct and the images exist in your public directory. Use placeholder images as fallbacks.
+
+2. **UUID Format Errors**: The application now generates UUIDs for the user_id field to ensure compatibility with Supabase's UUID column type.
+
+3. **Clerk Development Keys Warning**: This is just a warning and doesn't affect functionality. Replace with production keys when ready.
+
+4. **Failed to Load Resources**: Check that all paths in your code are correct and resources exist.
+
+### Database Issues
+
+If you're experiencing issues with database operations:
+
+1. Check your Supabase table schema to ensure it matches what your application expects
+2. Verify that your RLS (Row Level Security) policies are correctly configured
+3. Test database operations directly in the Supabase dashboard to isolate issues
+
 ## How can I deploy this project?
 
 Simply open [Lovable](https://lovable.dev/projects/168655db-3d84-4a9b-89d4-9ac0543d8bae) and click on Share -> Publish.
@@ -67,3 +114,7 @@ Simply open [Lovable](https://lovable.dev/projects/168655db-3d84-4a9b-89d4-9ac05
 ## I want to use a custom domain - is that possible?
 
 We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+
+## License
+
+MIT
