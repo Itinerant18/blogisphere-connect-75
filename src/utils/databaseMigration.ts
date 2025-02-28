@@ -1,7 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
-import { createPost } from '@/integrations/firebase/blogService';
-// Uncomment the following line if you want to use MongoDB instead
-// import { createPost as createMongoPost } from '@/integrations/mongodb/blogService';
+import { createPost as createFirebasePost } from '@/integrations/firebase/blogService';
+import { createPost as createMongoPost } from '@/integrations/mongodb/blogService';
 import type { Post } from '@/types/post';
 
 /**
@@ -55,16 +54,13 @@ export const migrateFromSupabaseToFirebase = async () => {
             content: post.content, // Keep the original JSON format
             image_url: post.image_url || '/placeholder.svg',
             user_id: post.user_id,
-            author: 'Anonymous', // You might want to fetch the actual author name
-            date: post.created_at || new Date().toISOString(),
-            likes: 0,
-            comments: 0,
-            image: post.image_url || '/placeholder.svg',
-            category: category || 'Uncategorized',
-            tags: tags || []
+            username: post.username || 'Unknown User',
+            featured: post.featured || false,
+            tags: tags || [],
+            excerpt: post.excerpt || post.title
           };
           
-          const result = await createPost(newPost);
+          const result = await createFirebasePost(newPost);
           return { success: true, id: result.id, originalId: post.id };
         } catch (error) {
           console.error(`Failed to migrate post ${post.id}:`, error);
@@ -84,7 +80,10 @@ export const migrateFromSupabaseToFirebase = async () => {
     };
   } catch (error) {
     console.error('Migration failed:', error);
-    throw error;
+    return {
+      success: false,
+      error: error.message
+    };
   }
 };
 
@@ -108,8 +107,6 @@ export const migrateFromSupabaseToMongoDB = async () => {
     
     console.log(`Found ${data.length} posts to migrate`);
     
-    // Uncomment and modify this section to use MongoDB
-    /*
     // Migrate each post to MongoDB
     const results = await Promise.all(
       data.map(async (post) => {
@@ -120,41 +117,45 @@ export const migrateFromSupabaseToMongoDB = async () => {
           let tags = undefined;
           
           try {
-            // Try to parse the content as JSON
-            const parsedContent = JSON.parse(post.content);
-            if (parsedContent && typeof parsedContent === 'object') {
-              if (parsedContent.text) {
-                postContent = parsedContent.text;
-              }
-              if (parsedContent.metadata) {
-                category = parsedContent.metadata.category;
-                tags = parsedContent.metadata.tags;
+            if (typeof post.content === 'string') {
+              const contentObj = JSON.parse(post.content);
+              if (contentObj && typeof contentObj === 'object') {
+                postContent = contentObj.content || post.content;
+                category = contentObj.category;
+                tags = contentObj.tags;
               }
             }
           } catch (e) {
-            // If parsing fails, use the content as is
+            // If parsing fails, use the original content
+            console.log(`Error parsing content for post ${post.id}: ${e.message}`);
           }
           
           // Create a new post in MongoDB
           const newPost: Omit<Post, 'id' | 'created_at'> = {
             title: post.title,
-            content: post.content, // Keep the original JSON format
-            image_url: post.image_url || '/placeholder.svg',
+            content: postContent,
             user_id: post.user_id,
-            author: 'Anonymous', // You might want to fetch the actual author name
-            date: post.created_at || new Date().toISOString(),
-            likes: 0,
-            comments: 0,
-            image: post.image_url || '/placeholder.svg',
-            category: category || 'Uncategorized',
-            tags: tags || []
+            username: post.username || 'Unknown User',
+            featured: post.featured || false,
+            tags: tags || [],
+            image_url: post.image_url,
+            excerpt: post.excerpt || post.title
           };
           
           const result = await createMongoPost(newPost);
-          return { success: true, id: result.id, originalId: post.id };
-        } catch (error) {
-          console.error(`Failed to migrate post ${post.id}:`, error);
-          return { success: false, id: post.id, error };
+          
+          return {
+            success: true,
+            originalId: post.id,
+            newId: result.id
+          };
+        } catch (postError) {
+          console.error(`Error migrating post ${post.id}:`, postError);
+          return {
+            success: false,
+            originalId: post.id,
+            error: postError.message
+          };
         }
       })
     );
@@ -163,16 +164,16 @@ export const migrateFromSupabaseToMongoDB = async () => {
     const failed = results.filter(r => !r.success).length;
     
     return {
-      success: failed === 0,
+      success: true,
       migrated: successful,
       failed,
       details: results
     };
-    */
-    
-    return { success: false, message: 'MongoDB migration not implemented yet' };
   } catch (error) {
-    console.error('Migration failed:', error);
-    throw error;
+    console.error('Migration error:', error);
+    return {
+      success: false,
+      error: error.message
+    };
   }
 };
