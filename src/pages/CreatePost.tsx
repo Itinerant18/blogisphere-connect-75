@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +11,7 @@ import { useUser } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { Post } from '../types/post';
+import { v4 as uuidv4 } from 'uuid';
 
 const categories = [
   "Technology",
@@ -93,6 +93,9 @@ const CreatePost = () => {
         }
       });
       
+      // Generate a UUID for the user_id field
+      const generatedUuid = uuidv4();
+      
       // Create new post in Supabase
       const { data, error } = await supabase
         .from('blogs')
@@ -100,8 +103,8 @@ const CreatePost = () => {
           {
             title: title.trim(),
             content: enhancedContent,
-            image_url: imageUrl || "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d",
-            user_id: user.id
+            image_url: imageUrl || "/placeholder.svg",
+            user_id: generatedUuid
           }
         ]);
         
