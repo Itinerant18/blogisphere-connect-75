@@ -54,8 +54,8 @@ export const PostsGrid: React.FC<PostsGridProps> = ({
         // Format author to string
         let authorName = 'Anonymous';
         if (post.author) {
-          if (typeof post.author === 'object') {
-            authorName = post.author.name || 'Anonymous';
+          if (typeof post.author === 'object' && post.author.name) {
+            authorName = post.author.name;
           } else if (typeof post.author === 'string') {
             authorName = post.author;
           }

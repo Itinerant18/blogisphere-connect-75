@@ -58,7 +58,8 @@ export const migrateFromSupabaseToFirebase = async () => {
             author: post.author || 'Unknown User',
             featured: post.featured || false,
             tags: tags || [],
-            excerpt: post.excerpt || post.title
+            excerpt: post.excerpt || post.title,
+            category: category
           };
           
           const result = await createFirebasePost(newPost);
@@ -136,7 +137,7 @@ export const migrateFromSupabaseToMongoDB = async () => {
             title: post.title,
             content: postContent,
             user_id: post.user_id,
-            author: post.author || 'Unknown User',
+            author: post.author || { name: 'Unknown User' },
             featured: post.featured || false,
             tags: tags || [],
             featured_image: post.image_url,
@@ -146,7 +147,8 @@ export const migrateFromSupabaseToMongoDB = async () => {
             comments_count: 0,
             views_count: 0,
             slug: post.title.toLowerCase().replace(/\s+/g, '-'),
-            reading_time: Math.ceil(postContent.length / 1000)
+            reading_time: Math.ceil(postContent.length / 1000),
+            category: category
           };
           
           const result = await createMongoPost(newPost);

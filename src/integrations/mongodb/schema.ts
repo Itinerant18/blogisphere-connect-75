@@ -19,7 +19,7 @@ export const COLLECTIONS = {
 
 // Common MongoDB Document interface
 export interface MongoDocument {
-  _id?: ObjectId;
+  _id?: ObjectId | string;
 }
 
 // MongoDB Document Interfaces
@@ -33,7 +33,7 @@ export interface BlogDocument extends MongoDocument {
   author?: {
     name: string;
     avatar?: string;
-  };
+  } | string;
   created_at: Date;
   updated_at: Date;
   published: boolean;
@@ -83,7 +83,7 @@ export interface CommentDocument extends MongoDocument {
   author?: {
     name: string;
     avatar?: string;
-  };
+  } | string;
   likes_count: number;
 }
 

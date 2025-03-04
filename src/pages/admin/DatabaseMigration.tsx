@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -132,7 +133,7 @@ const DatabaseMigration = () => {
             <CardContent>
               {result.success ? (
                 <div className="space-y-4">
-                  <Alert className="bg-green-50 border-green-200">
+                  <Alert variant="default" className="bg-green-50 border-green-200">
                     <CheckCircle className="h-4 w-4 text-green-500" />
                     <AlertTitle>Success</AlertTitle>
                     <AlertDescription>
