@@ -35,22 +35,32 @@ export const PostsGrid: React.FC<PostsGridProps> = ({
         let tags = post.tags || [];
         
         try {
-          // Only attempt to parse if content is a string
-          if (typeof post.content === 'string') {
+          // Only attempt to parse if content is a string and looks like JSON
+          if (typeof post.content === 'string' && 
+              (post.content.startsWith('{') || post.content.startsWith('['))) {
             const parsedContent = JSON.parse(post.content);
             if (parsedContent && typeof parsedContent === 'object') {
               if (parsedContent.text) {
                 postContent = parsedContent.text;
+              } else if (parsedContent.content) {
+                postContent = parsedContent.content;
               }
+              
               if (parsedContent.metadata) {
                 category = parsedContent.metadata.category || category;
                 tags = parsedContent.metadata.tags || tags;
+              } else if (parsedContent.category) {
+                category = parsedContent.category;
+              }
+              
+              if (parsedContent.tags && Array.isArray(parsedContent.tags)) {
+                tags = parsedContent.tags;
               }
             }
           }
         } catch (e) {
           // If parsing fails, use the original content
-          console.log("Content is not in JSON format or is empty, using as is");
+          console.log("Content is not in JSON format or parsing failed, using as is");
         }
         
         // Format author to string
@@ -68,7 +78,7 @@ export const PostsGrid: React.FC<PostsGridProps> = ({
           id: post.id,
           title: post.title || 'Untitled Post',
           content: postContent || '',
-          excerpt: post.excerpt || (postContent ? (postContent.substring(0, 150) + '...') : 'No content'),
+          excerpt: post.excerpt || (postContent ? (String(postContent).substring(0, 150) + '...') : 'No content'),
           author: authorName,
           date: post.date || 
                 (typeof post.created_at === 'string' ? post.created_at :
@@ -87,4 +97,4 @@ export const PostsGrid: React.FC<PostsGridProps> = ({
       })}
     </div>
   );
-}
+};

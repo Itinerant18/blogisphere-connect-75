@@ -1,3 +1,4 @@
+
 import { MongoClient, ServerApiVersion } from 'mongodb';
 
 // Check if we're in a browser environment
@@ -7,28 +8,29 @@ const uri = import.meta.env.VITE_MONGODB_URI;
 
 // Connection status tracker
 let isConnected = false;
-let mockClient = null;
+let mockClient: any = null;
 
-if (!uri) {
+if (!uri && !isBrowser) {
   console.error('MongoDB connection string is missing! Please check your .env file.');
 }
 
-// Create a mock client for browser environments
+// Create a more comprehensive mock client for browser environments
 const createMockClient = () => {
   console.log('Running in browser environment, using mock MongoDB client');
   
   // Return a mock client with all necessary methods
-  return {
+  mockClient = {
     connect: () => Promise.resolve(mockClient),
-    db: (name) => ({
-      collection: (collectionName) => ({
+    db: (name: string) => ({
+      collection: (collectionName: string) => ({
         find: () => ({
           sort: () => ({
             limit: () => ({
               toArray: () => Promise.resolve([])
             }),
             toArray: () => Promise.resolve([])
-          })
+          }),
+          toArray: () => Promise.resolve([])
         }),
         findOne: () => Promise.resolve(null),
         insertOne: () => Promise.resolve({ insertedId: 'mock-id' }),
@@ -37,9 +39,10 @@ const createMockClient = () => {
         countDocuments: () => Promise.resolve(0)
       })
     }),
-    // Ensure we also close properly
     close: () => Promise.resolve()
   };
+  
+  return mockClient;
 };
 
 // Create a real client for server environments
@@ -48,47 +51,51 @@ const createServerClient = () => {
     throw new Error('MongoDB connection string is missing');
   }
   
-  const client = new MongoClient(uri, {
-    serverApi: {
-      version: ServerApiVersion.v1,
-      strict: true,
-      deprecationErrors: true,
-    }
-  });
-  
-  return client.connect()
-    .then((connected) => {
-      console.log('Connected to MongoDB successfully');
-      isConnected = true;
-      return connected;
-    })
-    .catch((err) => {
-      console.error('Failed to connect to MongoDB:', err);
-      isConnected = false;
-      throw err;
+  try {
+    const client = new MongoClient(uri, {
+      serverApi: {
+        version: ServerApiVersion.v1,
+        strict: true,
+        deprecationErrors: true,
+      }
     });
-};
-
-// Initialize the client based on environment
-const initializeClient = () => {
-  if (isBrowser) {
-    mockClient = createMockClient();
-    return Promise.resolve(mockClient);
-  } else {
-    return createServerClient();
+    
+    return client.connect()
+      .then((connected) => {
+        console.log('Connected to MongoDB successfully');
+        isConnected = true;
+        return connected;
+      })
+      .catch((err) => {
+        console.error('Failed to connect to MongoDB:', err);
+        isConnected = false;
+        throw err;
+      });
+  } catch (err) {
+    console.error('Error creating MongoDB client:', err);
+    isConnected = false;
+    throw err;
   }
 };
 
-// Keep track of the client promise globally
-const globalWithMongo = globalThis as unknown as {
-  _mongoClientPromise?: Promise<any>;
-};
+// Always use mock client in browser
+let clientPromise: Promise<any>;
 
-if (!globalWithMongo._mongoClientPromise) {
-  globalWithMongo._mongoClientPromise = initializeClient();
+if (isBrowser) {
+  // For browser, immediately resolve with mock client
+  clientPromise = Promise.resolve(createMockClient());
+} else {
+  // For server, try to connect to real MongoDB
+  try {
+    clientPromise = createServerClient();
+  } catch (err) {
+    console.error('Failed to initialize MongoDB client:', err);
+    // Fallback to mock client if server connection fails
+    clientPromise = Promise.resolve(createMockClient());
+  }
 }
 
-export const clientPromise = globalWithMongo._mongoClientPromise;
+export { clientPromise };
 
 export async function getDatabase(dbName: string = 'blogisphere') {
   try {
@@ -96,11 +103,8 @@ export async function getDatabase(dbName: string = 'blogisphere') {
     return client.db(dbName);
   } catch (error) {
     console.error(`Error getting database ${dbName}:`, error);
-    if (isBrowser) {
-      // Return a mock db in browser environments when errors occur
-      return (createMockClient()).db(dbName);
-    }
-    throw error;
+    // Return a mock db in case of errors
+    return createMockClient().db(dbName);
   }
 }
 
@@ -110,14 +114,11 @@ export async function getCollection(collectionName: string, dbName: string = 'bl
     return db.collection(collectionName);
   } catch (error) {
     console.error(`Error getting collection ${collectionName}:`, error);
-    if (isBrowser) {
-      // Return a mock collection in browser environments when errors occur
-      return (createMockClient()).db(dbName).collection(collectionName);
-    }
-    throw error;
+    // Return a mock collection in case of errors
+    return createMockClient().db(dbName).collection(collectionName);
   }
 }
 
 export const getConnectionStatus = () => {
-  return isConnected;
+  return isBrowser ? false : isConnected;
 };
