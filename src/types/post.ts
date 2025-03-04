@@ -3,16 +3,28 @@ export interface Post {
   id: string;
   title: string;
   excerpt?: string;
-  author: string;
-  date: string;
-  likes: number;
-  comments: number;
-  image: string;
-  category?: string;
   content: string;
-  tags?: string[];
-  // Supabase specific fields
   user_id?: string;
-  created_at?: string;
+  author?: {
+    name: string;
+    avatar?: string;
+  };
+  created_at?: string | Date;
+  updated_at?: string | Date;
+  published?: boolean;
+  featured?: boolean;
+  tags?: string[];
+  slug?: string;
+  likes_count?: number;
+  comments_count?: number;
+  views_count?: number;
+  reading_time?: number;
+  featured_image?: string;
+  // Compatibility with existing components
+  date?: string;
+  likes?: number;
+  comments?: number;
+  image?: string;
+  category?: string;
   image_url?: string;
 }

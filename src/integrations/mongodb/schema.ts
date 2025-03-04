@@ -1,3 +1,4 @@
+
 /**
  * MongoDB Schema Definitions
  * 
@@ -18,7 +19,7 @@ export const COLLECTIONS = {
 
 // MongoDB Document Interfaces
 export interface BlogDocument {
-  _id?: string;
+  _id?: ObjectId | string;
   id: string;
   title: string;
   content: string;
@@ -39,10 +40,11 @@ export interface BlogDocument {
   comments_count: number;
   views_count: number;
   reading_time: number;
+  status?: 'draft' | 'published' | 'archived';
 }
 
 export interface UserDocument {
-  _id?: string;
+  _id?: ObjectId | string;
   id: string;
   user_id: string;
   email: string;
@@ -68,7 +70,7 @@ export interface UserDocument {
 }
 
 export interface CommentDocument {
-  _id?: string;
+  _id?: ObjectId | string;
   id: string;
   blog_id: string;
   user_id: string;
@@ -84,7 +86,7 @@ export interface CommentDocument {
 }
 
 export interface LikeDocument {
-  _id?: string;
+  _id?: ObjectId | string;
   id: string;
   blog_id: string;
   user_id: string;
@@ -92,7 +94,7 @@ export interface LikeDocument {
 }
 
 export interface TagDocument {
-  _id?: string;
+  _id?: ObjectId | string;
   id: string;
   name: string;
   slug: string;

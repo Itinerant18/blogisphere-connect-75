@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +10,7 @@ import Navbar from '@/components/Navbar';
 import { toast } from "sonner";
 import { useUser } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
-import { createPost, uploadImage } from "@/integrations/firebase/blogService";
+import { createPost } from "@/integrations/mongodb/blogService";
 import type { Post } from '../types/post';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -93,34 +94,49 @@ const CreatePost = () => {
         }
       });
       
-      // Handle image upload if there's a file
-      let finalImageUrl = imageUrl;
-      if (imageUrl && imageUrl.startsWith('data:')) {
-        // Convert base64 to file
-        const response = await fetch(imageUrl);
-        const blob = await response.blob();
-        const file = new File([blob], 'image.jpg', { type: blob.type });
-        
-        // Upload to Firebase Storage
-        finalImageUrl = await uploadImage(file);
-      }
+      // Calculate reading time (approximately 200 words per minute)
+      const wordCount = content.trim().split(/\s+/).length;
+      const readingTime = Math.max(1, Math.round(wordCount / 200));
       
-      // Create new post in Firebase
-      const result = await createPost({
+      // Generate a slug from the title
+      const slug = title
+        .toLowerCase()
+        .replace(/[^\w\s]/gi, '')
+        .replace(/\s+/g, '-') + '-' + uuidv4().substring(0, 8);
+      
+      // Create a blog document for MongoDB
+      const blogPost = {
+        id: uuidv4(),
         title: title.trim(),
         content: enhancedContent,
-        image_url: finalImageUrl || "/placeholder.svg",
+        excerpt: content.substring(0, 150) + '...',
+        featured_image: imageUrl || "/placeholder.svg",
         user_id: user.id,
-        // Add other required fields for the Post type
-        author: user.fullName || user.username || 'Anonymous',
-        date: new Date().toISOString(),
-        likes: 0,
-        comments: 0,
-        image: finalImageUrl || "/placeholder.svg",
-      });
+        author: {
+          name: user.fullName || user.username || 'Anonymous',
+          avatar: user.imageUrl
+        },
+        created_at: new Date(),
+        updated_at: new Date(),
+        published: true,
+        featured: false,
+        tags: tags,
+        slug: slug,
+        likes_count: 0,
+        comments_count: 0,
+        views_count: 0,
+        reading_time: readingTime
+      };
       
-      toast.success("Post published successfully!");
-      navigate("/");
+      // Create post in MongoDB
+      const result = await createPost(blogPost);
+      
+      if (result.success) {
+        toast.success("Post published successfully!");
+        navigate("/");
+      } else {
+        throw new Error("Failed to publish post");
+      }
       
     } catch (error) {
       console.error("Failed to publish post:", error);

@@ -1,8 +1,9 @@
+
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from 'react-router-dom';
-import { getFeaturedPosts } from "@/integrations/firebase/blogService";
+import { getFeaturedPosts } from "@/integrations/mongodb/blogService";
 import { toast } from "sonner";
 import type { Post } from '@/types/post';
 

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -8,7 +9,7 @@ import { useUser } from "@clerk/clerk-react";
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { Post } from '../types/post';
 import { SearchBar } from '@/components/SearchBar';
-import { getAllPosts, subscribeToPostUpdates } from "@/integrations/firebase/blogService";
+import { getAllPosts, getFeaturedPosts } from "@/integrations/mongodb/blogService";
 import { WelcomeHeader } from '@/components/home/WelcomeHeader';
 import { CategoriesFilter } from '@/components/home/CategoriesFilter';
 import { NewsletterSubscription } from '@/components/home/NewsletterSubscription';
@@ -25,33 +26,24 @@ const Index = () => {
   const [allPosts, setAllPosts] = useState<Post[]>([]);
   const [filteredPosts, setFilteredPosts] = useState<Post[]>([]);
   const [isCreating, setIsCreating] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchPosts = async () => {
       try {
+        setLoading(true);
         const posts = await getAllPosts();
         console.log('Initial posts loaded:', posts);
         setAllPosts(posts);
       } catch (error) {
         console.error('Error fetching posts:', error);
         toast.error('Failed to load posts');
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchPosts();
-  }, []);
-
-  useEffect(() => {
-    // Subscribe to real-time updates
-    const unsubscribe = subscribeToPostUpdates((posts) => {
-      console.log('Real-time update received:', posts);
-      setAllPosts(posts);
-    });
-
-    // Cleanup subscription on component unmount
-    return () => {
-      unsubscribe();
-    };
   }, []);
 
   useEffect(() => {
@@ -152,11 +144,17 @@ const Index = () => {
 
           <NewsletterSubscription />
 
-          <PostsGrid 
-            posts={filteredPosts}
-            searchQuery={searchQuery}
-            selectedCategory={selectedCategory}
-          />
+          {loading ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">Loading posts...</p>
+            </div>
+          ) : (
+            <PostsGrid 
+              posts={filteredPosts}
+              searchQuery={searchQuery}
+              selectedCategory={selectedCategory}
+            />
+          )}
         </section>
       </main>
       

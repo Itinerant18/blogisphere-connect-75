@@ -1,10 +1,15 @@
+
 import { MongoClient, ServerApiVersion } from 'mongodb';
 const uri = import.meta.env.VITE_MONGODB_URI;
+
+// Connection status tracker
+let isConnected = false;
 
 if (!uri) {
   console.error('MongoDB connection string is missing! Please check your .env file.');
   throw new Error('MongoDB connection string is missing');
 }
+
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -15,17 +20,21 @@ const client = new MongoClient(uri, {
   connectTimeoutMS: 30000, // 30 seconds
   socketTimeoutMS: 45000, // 45 seconds
 });
+
 const globalWithMongo = globalThis as unknown as {
   _mongoClientPromise?: Promise<MongoClient>;
 };
+
 if (!globalWithMongo._mongoClientPromise) {
   globalWithMongo._mongoClientPromise = client.connect()
     .then((client) => {
       console.log('Connected to MongoDB successfully');
+      isConnected = true;
       return client;
     })
     .catch((err) => {
       console.error('Failed to connect to MongoDB:', err);
+      isConnected = false;
       throw err;
     });
 }
@@ -41,6 +50,7 @@ export async function getDatabase(dbName: string = 'blogisphere') {
     throw error;
   }
 }
+
 export async function getCollection(collectionName: string, dbName: string = 'blogisphere') {
   try {
     const db = await getDatabase(dbName);
@@ -50,3 +60,7 @@ export async function getCollection(collectionName: string, dbName: string = 'bl
     throw error;
   }
 }
+
+export const getConnectionStatus = () => {
+  return isConnected;
+};
