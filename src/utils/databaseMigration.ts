@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { createPost as createFirebasePost } from '@/integrations/firebase/blogService';
 import { createPost as createMongoPost } from '@/integrations/mongodb/blogService';
 import type { Post } from '@/types/post';
+import { formatPost } from '@/integrations/mongodb/utils/formatters';
 
 /**
  * Utility function to migrate data from Supabase to Firebase
@@ -116,7 +117,7 @@ export const migrateFromSupabaseToMongoDB = async () => {
           // Process content if it's stored as JSON
           let postContent = post.content;
           let category = undefined;
-          let tags = undefined;
+          let tags = [];
           
           try {
             if (typeof post.content === 'string') {
@@ -124,7 +125,7 @@ export const migrateFromSupabaseToMongoDB = async () => {
               if (contentObj && typeof contentObj === 'object') {
                 postContent = contentObj.content || post.content;
                 category = contentObj.category;
-                tags = contentObj.tags;
+                tags = contentObj.tags || [];
               }
             }
           } catch (e) {
@@ -132,23 +133,35 @@ export const migrateFromSupabaseToMongoDB = async () => {
             console.log(`Error parsing content for post ${post.id}: ${e.message}`);
           }
           
-          // Create a new post in MongoDB
+          // Format author to object format expected by MongoDB
+          let author = { name: 'Unknown User' };
+          if (post.author) {
+            if (typeof post.author === 'object') {
+              author = post.author;
+            } else if (typeof post.author === 'string') {
+              author = { name: post.author };
+            }
+          }
+          
+          // Create a new post in MongoDB format
           const newPost = {
-            title: post.title,
-            content: postContent,
-            user_id: post.user_id,
-            author: post.author || { name: 'Unknown User' },
+            title: post.title || 'Untitled Post',
+            content: typeof postContent === 'string' ? postContent : JSON.stringify(postContent),
+            user_id: post.user_id || 'anonymous',
+            author: author,
             featured: post.featured || false,
-            tags: tags || [],
-            featured_image: post.image_url,
-            excerpt: post.excerpt || post.title,
+            tags: Array.isArray(tags) ? tags : [],
+            featured_image: post.image_url || post.image || '/placeholder.svg',
+            excerpt: post.excerpt || (typeof post.title === 'string' ? post.title : 'Untitled Post'),
             published: true,
             likes_count: 0,
             comments_count: 0,
             views_count: 0,
-            slug: post.title.toLowerCase().replace(/\s+/g, '-'),
-            reading_time: Math.ceil(postContent.length / 1000),
-            category: category
+            slug: typeof post.title === 'string' ? post.title.toLowerCase().replace(/\s+/g, '-') : 'untitled-post',
+            reading_time: typeof postContent === 'string' ? Math.ceil(postContent.length / 1000) : 1,
+            category: category || 'Uncategorized',
+            created_at: new Date(),
+            updated_at: new Date()
           };
           
           const result = await createMongoPost(newPost);

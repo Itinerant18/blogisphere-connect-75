@@ -1,20 +1,5 @@
 import { MongoClient, ServerApiVersion } from 'mongodb';
 
-// Use a polyfill or mock for browser environments
-const mockPromisify = (fn) => (...args) => {
-  return new Promise((resolve, reject) => {
-    fn(...args, (err, result) => {
-      if (err) return reject(err);
-      resolve(result);
-    });
-  });
-};
-
-// Polyfill util.promisify for browser
-if (typeof global !== 'undefined' && !global.util) {
-  global.util = { promisify: mockPromisify };
-}
-
 // Check if we're in a browser environment
 const isBrowser = typeof window !== 'undefined';
 
@@ -26,47 +11,49 @@ let mockClient = null;
 
 if (!uri) {
   console.error('MongoDB connection string is missing! Please check your .env file.');
-  throw new Error('MongoDB connection string is missing');
 }
 
-// Create a mock client or real client based on environment
-const createClient = () => {
-  if (isBrowser) {
-    console.log('Running in browser environment, using mock MongoDB client');
-    
-    // Return a mock client for browser environments
-    mockClient = {
-      connect: () => Promise.resolve(getMockClient()),
-      db: (name) => ({
-        collection: (collectionName) => ({
-          find: () => ({
-            sort: () => ({
-              limit: () => ({
-                toArray: () => Promise.resolve([])
-              }),
+// Create a mock client for browser environments
+const createMockClient = () => {
+  console.log('Running in browser environment, using mock MongoDB client');
+  
+  // Return a mock client with all necessary methods
+  return {
+    connect: () => Promise.resolve(mockClient),
+    db: (name) => ({
+      collection: (collectionName) => ({
+        find: () => ({
+          sort: () => ({
+            limit: () => ({
               toArray: () => Promise.resolve([])
-            })
-          }),
-          findOne: () => Promise.resolve(null),
-          insertOne: () => Promise.resolve({ insertedId: 'mock-id' }),
-          updateOne: () => Promise.resolve({ matchedCount: 1 }),
-          deleteOne: () => Promise.resolve({ deletedCount: 1 }),
-        })
+            }),
+            toArray: () => Promise.resolve([])
+          })
+        }),
+        findOne: () => Promise.resolve(null),
+        insertOne: () => Promise.resolve({ insertedId: 'mock-id' }),
+        updateOne: () => Promise.resolve({ matchedCount: 1 }),
+        deleteOne: () => Promise.resolve({ deletedCount: 1 }),
+        countDocuments: () => Promise.resolve(0)
       })
-    };
-    return Promise.resolve(mockClient);
+    }),
+    // Ensure we also close properly
+    close: () => Promise.resolve()
+  };
+};
+
+// Create a real client for server environments
+const createServerClient = () => {
+  if (!uri) {
+    throw new Error('MongoDB connection string is missing');
   }
   
-  // Use the actual MongoDB client for server environments
   const client = new MongoClient(uri, {
     serverApi: {
       version: ServerApiVersion.v1,
       strict: true,
       deprecationErrors: true,
-    },
-    maxPoolSize: 10,
-    connectTimeoutMS: 30000,
-    socketTimeoutMS: 45000,
+    }
   });
   
   return client.connect()
@@ -82,7 +69,15 @@ const createClient = () => {
     });
 };
 
-const getMockClient = () => mockClient;
+// Initialize the client based on environment
+const initializeClient = () => {
+  if (isBrowser) {
+    mockClient = createMockClient();
+    return Promise.resolve(mockClient);
+  } else {
+    return createServerClient();
+  }
+};
 
 // Keep track of the client promise globally
 const globalWithMongo = globalThis as unknown as {
@@ -90,7 +85,7 @@ const globalWithMongo = globalThis as unknown as {
 };
 
 if (!globalWithMongo._mongoClientPromise) {
-  globalWithMongo._mongoClientPromise = createClient();
+  globalWithMongo._mongoClientPromise = initializeClient();
 }
 
 export const clientPromise = globalWithMongo._mongoClientPromise;
@@ -101,6 +96,10 @@ export async function getDatabase(dbName: string = 'blogisphere') {
     return client.db(dbName);
   } catch (error) {
     console.error(`Error getting database ${dbName}:`, error);
+    if (isBrowser) {
+      // Return a mock db in browser environments when errors occur
+      return (createMockClient()).db(dbName);
+    }
     throw error;
   }
 }
@@ -111,6 +110,10 @@ export async function getCollection(collectionName: string, dbName: string = 'bl
     return db.collection(collectionName);
   } catch (error) {
     console.error(`Error getting collection ${collectionName}:`, error);
+    if (isBrowser) {
+      // Return a mock collection in browser environments when errors occur
+      return (createMockClient()).db(dbName).collection(collectionName);
+    }
     throw error;
   }
 }
