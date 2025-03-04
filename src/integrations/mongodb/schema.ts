@@ -17,9 +17,13 @@ export const COLLECTIONS = {
   TAGS: 'tags'
 };
 
+// Common MongoDB Document interface
+export interface MongoDocument {
+  _id?: ObjectId;
+}
+
 // MongoDB Document Interfaces
-export interface BlogDocument {
-  _id?: ObjectId | string;
+export interface BlogDocument extends MongoDocument {
   id: string;
   title: string;
   content: string;
@@ -43,8 +47,7 @@ export interface BlogDocument {
   status?: 'draft' | 'published' | 'archived';
 }
 
-export interface UserDocument {
-  _id?: ObjectId | string;
+export interface UserDocument extends MongoDocument {
   id: string;
   user_id: string;
   email: string;
@@ -69,8 +72,7 @@ export interface UserDocument {
   };
 }
 
-export interface CommentDocument {
-  _id?: ObjectId | string;
+export interface CommentDocument extends MongoDocument {
   id: string;
   blog_id: string;
   user_id: string;
@@ -85,16 +87,14 @@ export interface CommentDocument {
   likes_count: number;
 }
 
-export interface LikeDocument {
-  _id?: ObjectId | string;
+export interface LikeDocument extends MongoDocument {
   id: string;
   blog_id: string;
   user_id: string;
   created_at: Date;
 }
 
-export interface TagDocument {
-  _id?: ObjectId | string;
+export interface TagDocument extends MongoDocument {
   id: string;
   name: string;
   slug: string;

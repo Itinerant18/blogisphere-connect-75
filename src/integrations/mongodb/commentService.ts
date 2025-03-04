@@ -1,12 +1,16 @@
-import { ObjectId } from 'mongodb';
+
+import { ObjectId, Document, WithId } from 'mongodb';
 import { getCollection } from './client';
 import { CommentDocument, COLLECTIONS } from './schema';
 
 // Format comment document for frontend
-const formatComment = (comment: CommentDocument) => {
+const formatComment = (doc: WithId<Document>) => {
+  // Cast to CommentDocument after an unknown cast to handle type conflicts
+  const comment = doc as unknown as CommentDocument;
   const { _id, ...rest } = comment;
+  
   return {
-    id: _id ? _id.toString() : '',
+    id: rest.id || (_id ? _id.toString() : ''),
     ...rest,
     created_at: rest.created_at ? new Date(rest.created_at).toISOString() : new Date().toISOString(),
     updated_at: rest.updated_at ? new Date(rest.updated_at).toISOString() : undefined,
@@ -18,17 +22,18 @@ export const createComment = async (commentData: Omit<CommentDocument, '_id' | '
   try {
     const collection = await getCollection(COLLECTIONS.COMMENTS);
     
-    const newComment: CommentDocument = {
+    const newComment = {
       ...commentData,
       created_at: new Date()
     };
     
-    const result = await collection.insertOne(newComment);
+    // Use as unknown as Document to match MongoDB's expected type
+    const result = await collection.insertOne(newComment as unknown as Document);
     
     // Update comment count in the blog post
     const blogCollection = await getCollection(COLLECTIONS.BLOGS);
     await blogCollection.updateOne(
-      { _id: new ObjectId(commentData.blog_id) },
+      { id: commentData.blog_id },
       { $inc: { comments_count: 1 } }
     );
     
@@ -52,7 +57,7 @@ export const getCommentsByBlogId = async (blogId: string) => {
       .sort({ created_at: 1 })
       .toArray();
     
-    return comments.map(formatComment);
+    return comments.map(doc => formatComment(doc));
   } catch (error) {
     console.error(`Error getting comments for blog ${blogId}:`, error);
     throw error;
@@ -64,25 +69,36 @@ export const updateComment = async (id: string, content: string, userId: string)
   try {
     const collection = await getCollection(COLLECTIONS.COMMENTS);
     
-    let objectId;
-    try {
-      objectId = new ObjectId(id);
-    } catch (e) {
-      throw new Error('Invalid comment ID format');
+    // Try to find by id field first
+    let comment = await collection.findOne({ id });
+    let query = { id };
+    
+    // If not found, try with ObjectId
+    if (!comment) {
+      try {
+        const objectId = new ObjectId(id);
+        comment = await collection.findOne({ _id: objectId });
+        if (comment) {
+          query = { _id: objectId };
+        }
+      } catch (e) {
+        // Not a valid ObjectId, which is fine
+      }
     }
     
-    // Verify the user owns the comment
-    const comment = await collection.findOne({ _id: objectId });
     if (!comment) {
       throw new Error('Comment not found');
     }
     
-    if (comment.user_id !== userId) {
+    // Cast to CommentDocument after an unknown cast
+    const commentDoc = comment as unknown as CommentDocument;
+    
+    if (commentDoc.user_id !== userId) {
       throw new Error('Unauthorized: You can only edit your own comments');
     }
     
     const result = await collection.updateOne(
-      { _id: objectId },
+      query,
       { 
         $set: { 
           content,
@@ -103,29 +119,40 @@ export const deleteComment = async (id: string, userId: string) => {
   try {
     const collection = await getCollection(COLLECTIONS.COMMENTS);
     
-    let objectId;
-    try {
-      objectId = new ObjectId(id);
-    } catch (e) {
-      throw new Error('Invalid comment ID format');
+    // Try to find by id field first
+    let comment = await collection.findOne({ id });
+    let query = { id };
+    
+    // If not found, try with ObjectId
+    if (!comment) {
+      try {
+        const objectId = new ObjectId(id);
+        comment = await collection.findOne({ _id: objectId });
+        if (comment) {
+          query = { _id: objectId };
+        }
+      } catch (e) {
+        // Not a valid ObjectId, which is fine
+      }
     }
     
-    // Verify the user owns the comment
-    const comment = await collection.findOne({ _id: objectId });
     if (!comment) {
       throw new Error('Comment not found');
     }
     
-    if (comment.user_id !== userId) {
+    // Cast to CommentDocument after an unknown cast
+    const commentDoc = comment as unknown as CommentDocument;
+    
+    if (commentDoc.user_id !== userId) {
       throw new Error('Unauthorized: You can only delete your own comments');
     }
     
-    const result = await collection.deleteOne({ _id: objectId });
+    const result = await collection.deleteOne(query);
     
     // Update comment count in the blog post
     const blogCollection = await getCollection(COLLECTIONS.BLOGS);
     await blogCollection.updateOne(
-      { _id: new ObjectId(comment.blog_id) },
+      { id: commentDoc.blog_id },
       { $inc: { comments_count: -1 } }
     );
     
@@ -146,7 +173,7 @@ export const getCommentsByUserId = async (userId: string) => {
       .sort({ created_at: -1 })
       .toArray();
     
-    return comments.map(formatComment);
+    return comments.map(doc => formatComment(doc));
   } catch (error) {
     console.error(`Error getting comments for user ${userId}:`, error);
     throw error;

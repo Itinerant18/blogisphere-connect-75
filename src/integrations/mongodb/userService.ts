@@ -1,12 +1,16 @@
-import { ObjectId } from 'mongodb';
+
+import { ObjectId, Document, WithId } from 'mongodb';
 import { getCollection } from './client';
 import { UserDocument, COLLECTIONS } from './schema';
 
 // Format user document for frontend
-const formatUser = (user: UserDocument) => {
+const formatUser = (doc: WithId<Document>) => {
+  // Cast to UserDocument after an unknown cast to handle type conflicts
+  const user = doc as unknown as UserDocument;
   const { _id, ...rest } = user;
+  
   return {
-    id: _id ? _id.toString() : rest.user_id,
+    id: _id ? _id.toString() : rest.id || rest.user_id,
     ...rest,
     created_at: rest.created_at ? new Date(rest.created_at).toISOString() : new Date().toISOString(),
     updated_at: rest.updated_at ? new Date(rest.updated_at).toISOString() : undefined,
@@ -42,13 +46,14 @@ export const createOrUpdateUser = async (userData: Omit<UserDocument, '_id' | 'c
       };
     } else {
       // Create new user
-      const newUser: UserDocument = {
+      const newUser = {
         ...userData,
         created_at: new Date(),
         role: userData.role || 'user'
       };
       
-      const result = await collection.insertOne(newUser);
+      // Use as unknown as Document to match MongoDB's expected type
+      const result = await collection.insertOne(newUser as unknown as Document);
       
       return { 
         success: true, 
@@ -83,14 +88,20 @@ export const getUserById = async (id: string) => {
   try {
     const collection = await getCollection(COLLECTIONS.USERS);
     
-    let objectId;
-    try {
-      objectId = new ObjectId(id);
-    } catch (e) {
-      throw new Error('Invalid user ID format');
-    }
+    let user;
     
-    const user = await collection.findOne({ _id: objectId });
+    // Try to find by id field first
+    user = await collection.findOne({ id });
+    
+    // If not found, try with ObjectId
+    if (!user) {
+      try {
+        const objectId = new ObjectId(id);
+        user = await collection.findOne({ _id: objectId });
+      } catch (e) {
+        // Not a valid ObjectId, which is fine
+      }
+    }
     
     if (!user) return null;
     
