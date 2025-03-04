@@ -8,7 +8,7 @@ export interface Post {
   author?: {
     name: string;
     avatar?: string;
-  };
+  } | string; // Allow author to be either a string or an object for compatibility
   created_at?: string | Date;
   updated_at?: string | Date;
   published?: boolean;
@@ -27,4 +27,5 @@ export interface Post {
   image?: string;
   category?: string;
   image_url?: string;
+  username?: string; // Add username for migration utility
 }

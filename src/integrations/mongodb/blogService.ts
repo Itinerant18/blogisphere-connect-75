@@ -1,15 +1,18 @@
 
-import { ObjectId } from 'mongodb';
+import { ObjectId, Document, WithId } from 'mongodb';
 import { getCollection } from './client';
 import type { Post } from '../../types/post';
 import { BlogDocument, COLLECTIONS } from './schema';
 import { v4 as uuidv4 } from 'uuid';
 
 // Helper function to convert MongoDB _id to id
-const formatPost = (post: BlogDocument): Post => {
-  const { _id, ...rest } = post;
+const formatPost = (post: WithId<Document>): Post => {
+  // Cast document to BlogDocument with unknown first to avoid direct type conflicts
+  const blogPost = post as unknown as BlogDocument;
+  const { _id, ...rest } = blogPost;
+  
   return {
-    id: post.id || (_id ? _id.toString() : uuidv4()),
+    id: rest.id || (_id ? _id.toString() : uuidv4()),
     ...rest,
     created_at: rest.created_at ? new Date(rest.created_at).toISOString() : new Date().toISOString(),
     updated_at: rest.updated_at ? new Date(rest.updated_at).toISOString() : undefined,
@@ -19,28 +22,42 @@ const formatPost = (post: BlogDocument): Post => {
     comments: rest.comments_count,
     image: rest.featured_image,
     image_url: rest.featured_image,
-    author: typeof rest.author === 'object' ? rest.author.name : rest.author || 'Anonymous'
+    author: rest.author || 'Anonymous'
   } as Post;
 };
 
 // Create a new blog post
-export const createPost = async (post: Omit<BlogDocument, '_id'>) => {
+export const createPost = async (post: Omit<Post, 'id' | '_id' | 'created_at' | 'updated_at'>) => {
   try {
     const collection = await getCollection(COLLECTIONS.BLOGS);
     
-    const newPost: BlogDocument = {
-      ...post,
-      id: post.id || uuidv4(),
+    const newPost: Partial<BlogDocument> = {
+      id: uuidv4(),
+      title: post.title,
+      content: post.content,
+      excerpt: post.excerpt || post.content.substring(0, 150) + '...',
+      featured_image: post.featured_image || post.image || post.image_url,
+      user_id: post.user_id || '',
       created_at: new Date(),
       updated_at: new Date(),
       featured: post.featured || false,
-      likes_count: post.likes_count || 0,
-      comments_count: post.comments_count || 0,
+      published: true,
+      tags: post.tags || [],
+      slug: post.slug || post.title.toLowerCase().replace(/\s+/g, '-'),
+      likes_count: post.likes_count || post.likes || 0,
+      comments_count: post.comments_count || post.comments || 0,
       views_count: post.views_count || 0,
+      reading_time: post.reading_time || Math.ceil(post.content.length / 1000),
       status: 'published'
     };
     
-    const result = await collection.insertOne(newPost);
+    if (typeof post.author === 'string') {
+      newPost.author = { name: post.author };
+    } else {
+      newPost.author = post.author;
+    }
+    
+    const result = await collection.insertOne(newPost as any);
     
     return { 
       id: result.insertedId.toString(),
@@ -62,7 +79,7 @@ export const getAllPosts = async () => {
       .sort({ created_at: -1 })
       .toArray();
     
-    return posts.map(formatPost);
+    return posts.map(post => formatPost(post));
   } catch (error) {
     console.error('Error getting all posts:', error);
     throw error;
@@ -115,7 +132,7 @@ export const getPostsByUserId = async (userId: string) => {
       .sort({ created_at: -1 })
       .toArray();
     
-    return posts.map(formatPost);
+    return posts.map(post => formatPost(post));
   } catch (error) {
     console.error(`Error getting posts by user ID ${userId}:`, error);
     throw error;
@@ -129,7 +146,7 @@ export const updatePost = async (id: string, updates: Partial<Post>) => {
     
     // Try to find the post by id field first
     let post = await collection.findOne({ id: id });
-    let query = { id: id };
+    let query: any = { id: id };
     
     // If not found, try to find by _id if it's a valid ObjectId
     if (!post) {
@@ -149,6 +166,11 @@ export const updatePost = async (id: string, updates: Partial<Post>) => {
     }
     
     const { id: _, created_at, ...updateData } = updates as any;
+    
+    // Convert author to object format if it's a string
+    if (typeof updateData.author === 'string') {
+      updateData.author = { name: updateData.author };
+    }
     
     const result = await collection.updateOne(
       query,
@@ -178,7 +200,7 @@ export const deletePost = async (id: string) => {
     
     // Try to find the post by id field first
     let post = await collection.findOne({ id: id });
-    let query = { id: id };
+    let query: any = { id: id };
     
     // If not found, try to find by _id if it's a valid ObjectId
     if (!post) {
@@ -225,7 +247,7 @@ export const hardDeletePost = async (id: string) => {
     const collection = await getCollection(COLLECTIONS.BLOGS);
     
     // Try both id and _id
-    let query = { $or: [{ id: id }] };
+    let query: any = { $or: [{ id: id }] };
     
     try {
       const objectId = new ObjectId(id);
@@ -261,7 +283,7 @@ export const getFeaturedPosts = async (count: number = 3) => {
       .limit(count)
       .toArray();
     
-    return posts.map(formatPost);
+    return posts.map(post => formatPost(post));
   } catch (error) {
     console.error('Error getting featured posts:', error);
     throw error;
@@ -289,7 +311,7 @@ export const searchPosts = async (query: string) => {
       .sort({ created_at: -1 })
       .toArray();
     
-    return posts.map(formatPost);
+    return posts.map(post => formatPost(post));
   } catch (error) {
     console.error(`Error searching posts for "${query}":`, error);
     throw error;
@@ -309,7 +331,7 @@ export const getPostsByTag = async (tag: string) => {
       .sort({ created_at: -1 })
       .toArray();
     
-    return posts.map(formatPost);
+    return posts.map(post => formatPost(post));
   } catch (error) {
     console.error(`Error getting posts by tag "${tag}":`, error);
     throw error;

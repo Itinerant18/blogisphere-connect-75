@@ -73,10 +73,16 @@ const Index = () => {
           // Use the content as is if it's not JSON
         }
         
+        const authorName = typeof post.author === 'object' 
+          ? post.author.name 
+          : typeof post.author === 'string' 
+            ? post.author 
+            : '';
+        
         return (
           post.title?.toLowerCase().includes(normalizedQuery) ||
           contentText?.toLowerCase().includes(normalizedQuery) ||
-          post.author?.toLowerCase().includes(normalizedQuery) ||
+          authorName.toLowerCase().includes(normalizedQuery) ||
           post.tags?.some(tag => tag.toLowerCase().includes(normalizedQuery))
         );
       });

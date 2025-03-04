@@ -43,7 +43,14 @@ const PostDetail = () => {
     );
   }
 
-  const isAuthor = user?.username === post.author || user?.firstName === post.author;
+  // Get author name regardless of format
+  const authorName = typeof post.author === 'object' ? post.author.name : 
+                    typeof post.author === 'string' ? post.author : 'Anonymous';
+  
+  // Get author initial for avatar
+  const authorInitial = authorName ? authorName[0] : 'A';
+  
+  const isAuthor = user?.username === authorName || user?.firstName === authorName;
 
   const handleEdit = () => {
     navigate(`/edit/${post.id}`);
@@ -105,12 +112,12 @@ const PostDetail = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <Avatar>
-                      <AvatarFallback>{post.author[0]}</AvatarFallback>
+                      <AvatarFallback>{authorInitial}</AvatarFallback>
                     </Avatar>
                     <div>
-                      <h3 className="font-semibold">{post.author}</h3>
+                      <h3 className="font-semibold">{authorName}</h3>
                       <p className="text-sm text-muted-foreground">
-                        {new Date(post.date).toLocaleDateString()}
+                        {new Date(post.date || post.created_at || new Date()).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
@@ -165,11 +172,11 @@ const PostDetail = () => {
                     <ThumbsUp 
                       className={`h-4 w-4 ${isLiked ? 'fill-current text-primary' : ''}`} 
                     />
-                    <span>{post.likes + (isLiked ? 1 : 0)}</span>
+                    <span>{(post.likes_count || post.likes || 0) + (isLiked ? 1 : 0)}</span>
                   </Button>
                   <Button variant="ghost" size="sm" className="gap-2">
                     <MessageSquare className="h-4 w-4" />
-                    <span>{post.comments}</span>
+                    <span>{post.comments_count || post.comments || 0}</span>
                   </Button>
                   <Button 
                     variant="ghost" 

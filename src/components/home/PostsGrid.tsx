@@ -51,16 +51,26 @@ export const PostsGrid: React.FC<PostsGridProps> = ({
           console.log("Content is not in JSON format, using as is");
         }
         
+        // Format author to string
+        let authorName = 'Anonymous';
+        if (post.author) {
+          if (typeof post.author === 'object') {
+            authorName = post.author.name || 'Anonymous';
+          } else if (typeof post.author === 'string') {
+            authorName = post.author;
+          }
+        }
+        
         // Ensure post has all required fields for BlogPost component
-        const processedPost: Post = {
+        const processedPost = {
           id: post.id,
           title: post.title || 'Untitled Post',
           content: postContent || '',
           excerpt: post.excerpt || (postContent ? (postContent.substring(0, 150) + '...') : 'No content'),
-          author: typeof post.author === 'object' ? post.author.name : (post.author || 'Anonymous'),
+          author: authorName,
           date: typeof post.created_at === 'string' ? post.created_at : 
                 post.created_at instanceof Date ? post.created_at.toISOString() : 
-                new Date().toISOString(),
+                post.date || new Date().toISOString(),
           likes: post.likes_count || post.likes || 0,
           comments: post.comments_count || post.comments || 0,
           image: post.featured_image || post.image || post.image_url || '/placeholder.svg',

@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { createPost as createFirebasePost } from '@/integrations/firebase/blogService';
 import { createPost as createMongoPost } from '@/integrations/mongodb/blogService';
@@ -54,7 +55,7 @@ export const migrateFromSupabaseToFirebase = async () => {
             content: post.content, // Keep the original JSON format
             image_url: post.image_url || '/placeholder.svg',
             user_id: post.user_id,
-            username: post.username || 'Unknown User',
+            author: post.author || 'Unknown User',
             featured: post.featured || false,
             tags: tags || [],
             excerpt: post.excerpt || post.title
@@ -131,15 +132,21 @@ export const migrateFromSupabaseToMongoDB = async () => {
           }
           
           // Create a new post in MongoDB
-          const newPost: Omit<Post, 'id' | 'created_at'> = {
+          const newPost = {
             title: post.title,
             content: postContent,
             user_id: post.user_id,
-            username: post.username || 'Unknown User',
+            author: post.author || 'Unknown User',
             featured: post.featured || false,
             tags: tags || [],
-            image_url: post.image_url,
-            excerpt: post.excerpt || post.title
+            featured_image: post.image_url,
+            excerpt: post.excerpt || post.title,
+            published: true,
+            likes_count: 0,
+            comments_count: 0,
+            views_count: 0,
+            slug: post.title.toLowerCase().replace(/\s+/g, '-'),
+            reading_time: Math.ceil(postContent.length / 1000)
           };
           
           const result = await createMongoPost(newPost);
