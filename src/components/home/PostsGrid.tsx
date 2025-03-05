@@ -29,38 +29,57 @@ export const PostsGrid: React.FC<PostsGridProps> = ({
   return (
     <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
       {posts.map(post => {
-        // Process content if it's stored as JSON
+        if (!post || !post.id) {
+          console.error("Invalid post object:", post);
+          return null;
+        }
+        
+        // Extract and process post data
         let postContent = post.content || '';
         let category = post.category || 'Uncategorized';
-        let tags = post.tags || [];
+        let tags = Array.isArray(post.tags) ? post.tags : [];
+        let excerpt = post.excerpt || '';
         
+        // Try to extract content and metadata from JSON if applicable
         try {
-          // Only attempt to parse if content is a string and looks like JSON
           if (typeof post.content === 'string' && 
               (post.content.startsWith('{') || post.content.startsWith('['))) {
             const parsedContent = JSON.parse(post.content);
+            
             if (parsedContent && typeof parsedContent === 'object') {
+              // Extract content text
               if (parsedContent.text) {
                 postContent = parsedContent.text;
               } else if (parsedContent.content) {
                 postContent = parsedContent.content;
               }
               
+              // Extract metadata
               if (parsedContent.metadata) {
                 category = parsedContent.metadata.category || category;
                 tags = parsedContent.metadata.tags || tags;
-              } else if (parsedContent.category) {
-                category = parsedContent.category;
-              }
-              
-              if (parsedContent.tags && Array.isArray(parsedContent.tags)) {
-                tags = parsedContent.tags;
+              } else {
+                // Direct properties
+                if (parsedContent.category) {
+                  category = parsedContent.category;
+                }
+                
+                if (parsedContent.tags && Array.isArray(parsedContent.tags)) {
+                  tags = parsedContent.tags;
+                }
               }
             }
           }
         } catch (e) {
           // If parsing fails, use the original content
           console.log("Content is not in JSON format or parsing failed, using as is");
+        }
+        
+        // Generate excerpt if not provided
+        if (!excerpt && postContent) {
+          excerpt = typeof postContent === 'string' 
+            ? (postContent.length > 150 ? postContent.substring(0, 150) + '...' : postContent)
+            : 'No content';
         }
         
         // Format author to string
@@ -77,8 +96,8 @@ export const PostsGrid: React.FC<PostsGridProps> = ({
         const processedPost = {
           id: post.id,
           title: post.title || 'Untitled Post',
-          content: postContent || '',
-          excerpt: post.excerpt || (postContent ? (String(postContent).substring(0, 150) + '...') : 'No content'),
+          content: postContent,
+          excerpt: excerpt,
           author: authorName,
           date: post.date || 
                 (typeof post.created_at === 'string' ? post.created_at :

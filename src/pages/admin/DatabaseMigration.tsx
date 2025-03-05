@@ -7,7 +7,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { migrateFromSupabaseToFirebase, migrateFromSupabaseToMongoDB } from '@/utils/databaseMigration';
 import { toast } from "sonner";
-import { AlertCircle, CheckCircle, Database, ArrowRight } from "lucide-react";
+import { AlertCircle, CheckCircle, Database } from "lucide-react";
 import Navbar from '@/components/Navbar';
 
 const DatabaseMigration = () => {
