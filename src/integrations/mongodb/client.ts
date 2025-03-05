@@ -39,7 +39,7 @@ class BrowserCollection {
   }
 
   // Find documents
-  async find(query: Record<string, any> = {}) {
+  find(query: Record<string, any> = {}) {
     console.log(`[MongoDB Mock] Finding documents in ${this.collectionName} with query:`, query);
     
     // Filter results based on the query
@@ -58,30 +58,69 @@ class BrowserCollection {
           const docTags = doc.tags || [];
           return Array.isArray(inValues) && inValues.some(tag => docTags.includes(tag));
         });
+      } else if (key === '$or' && Array.isArray(value)) {
+        // Handle $or operator for search queries
+        results = results.filter(doc => {
+          return value.some(condition => {
+            for (const [condKey, condValue] of Object.entries(condition)) {
+              if (typeof condValue === 'object' && condValue !== null && '$regex' in condValue) {
+                const regex = new RegExp(String(condValue.$regex), condValue.$options || '');
+                return regex.test(String(doc[condKey] || ''));
+              }
+              return doc[condKey] === condValue;
+            }
+            return false;
+          });
+        });
+      } else if (key === '$and' && Array.isArray(value)) {
+        // Handle $and operator
+        results = results.filter(doc => {
+          return value.every(condition => {
+            if ('$or' in condition && Array.isArray(condition.$or)) {
+              return condition.$or.some(orCond => {
+                for (const [orKey, orValue] of Object.entries(orCond)) {
+                  if (typeof orValue === 'object' && orValue !== null && '$regex' in orValue) {
+                    const regex = new RegExp(String(orValue.$regex), orValue.$options || '');
+                    return regex.test(String(doc[orKey] || ''));
+                  }
+                  return doc[orKey] === orValue;
+                }
+                return false;
+              });
+            }
+            for (const [condKey, condValue] of Object.entries(condition)) {
+              if (doc[condKey] !== condValue) return false;
+            }
+            return true;
+          });
+        });
       } else if (value !== undefined) {
         // Handle regular equality
         results = results.filter(doc => doc[key] === value);
       }
     });
     
-    return {
-      toArray: async () => results,
+    const cursor = {
+      _data: results,
+      toArray: () => Promise.resolve(cursor._data),
       sort: (sortOptions: Record<string, 1 | -1>) => {
         const [field, direction] = Object.entries(sortOptions)[0] || [];
         if (field) {
-          results.sort((a, b) => {
+          cursor._data.sort((a, b) => {
             if (a[field] < b[field]) return direction === 1 ? -1 : 1;
             if (a[field] > b[field]) return direction === 1 ? 1 : -1;
             return 0;
           });
         }
-        return this;
+        return cursor;
       },
       limit: (n: number) => {
-        results = results.slice(0, n);
-        return this;
+        cursor._data = cursor._data.slice(0, n);
+        return cursor;
       }
     };
+    
+    return cursor;
   }
 
   // Find a single document
@@ -245,6 +284,19 @@ export const getCollection = async (collectionName: string) => {
   return collectionsCache[collectionName];
 };
 
+// Client Promise for compatibility with server-side code
+export const clientPromise = Promise.resolve({
+  db: () => ({
+    collection: (name: string) => {
+      if (!collectionsCache[name]) {
+        collectionsCache[name] = new BrowserCollection(name);
+      }
+      return collectionsCache[name];
+    }
+  }),
+  close: () => Promise.resolve()
+});
+
 // Connect to MongoDB
 export const connectToMongoDB = async () => {
   console.log("[MongoDB Mock] Using browser-compatible MongoDB mock");
@@ -270,7 +322,7 @@ export const checkMongoDBConnection = async () => {
 export const initializeMockCollections = async () => {
   // Check if blogs collection is empty
   const blogsCollection = await getCollection(COLLECTIONS.BLOGS);
-  const blogs = await blogsCollection.find();
+  const blogs = blogsCollection.find();
   const blogsArray = await blogs.toArray();
   
   if (blogsArray.length === 0) {

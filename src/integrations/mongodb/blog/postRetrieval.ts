@@ -10,12 +10,12 @@ export const getAllPosts = async () => {
   try {
     const collection = await getCollection(COLLECTIONS.BLOGS);
     
-    const posts = await collection
+    const posts = collection
       .find({ status: { $ne: 'archived' } })
-      .sort({ created_at: -1 })
-      .toArray();
+      .sort({ created_at: -1 });
     
-    return posts.map(post => formatPost(post));
+    const postsArray = await posts.toArray();
+    return postsArray.map(post => formatPost(post));
   } catch (error) {
     console.error('Error getting all posts:', error);
     throw error;
@@ -63,12 +63,12 @@ export const getPostsByUserId = async (userId: string) => {
   try {
     const collection = await getCollection(COLLECTIONS.BLOGS);
     
-    const posts = await collection
+    const posts = collection
       .find({ user_id: userId })
-      .sort({ created_at: -1 })
-      .toArray();
+      .sort({ created_at: -1 });
     
-    return posts.map(post => formatPost(post));
+    const postsArray = await posts.toArray();
+    return postsArray.map(post => formatPost(post));
   } catch (error) {
     console.error(`Error getting posts by user ID ${userId}:`, error);
     throw error;
@@ -80,16 +80,16 @@ export const getFeaturedPosts = async (count: number = 3) => {
   try {
     const collection = await getCollection(COLLECTIONS.BLOGS);
     
-    const posts = await collection
+    const posts = collection
       .find({ 
         featured: true,
         status: 'published'
       })
       .sort({ created_at: -1 })
-      .limit(count)
-      .toArray();
+      .limit(count);
     
-    return posts.map(post => formatPost(post));
+    const postsArray = await posts.toArray();
+    return postsArray.map(post => formatPost(post));
   } catch (error) {
     console.error('Error getting featured posts:', error);
     throw error;
@@ -101,15 +101,15 @@ export const getPostsByTag = async (tag: string) => {
   try {
     const collection = await getCollection(COLLECTIONS.BLOGS);
     
-    const posts = await collection
+    const posts = collection
       .find({ 
         tags: { $in: [tag] },
         status: 'published'
       })
-      .sort({ created_at: -1 })
-      .toArray();
+      .sort({ created_at: -1 });
     
-    return posts.map(post => formatPost(post));
+    const postsArray = await posts.toArray();
+    return postsArray.map(post => formatPost(post));
   } catch (error) {
     console.error(`Error getting posts by tag "${tag}":`, error);
     throw error;

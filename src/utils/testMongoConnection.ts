@@ -1,31 +1,30 @@
 
-import { clientPromise } from '@/integrations/mongodb/client';
+import { toast } from "sonner";
+import { clientPromise, checkMongoDBConnection } from "@/integrations/mongodb/client";
 
-export const testMongoDBConnection = async () => {
+export const testMongoConnection = async () => {
   try {
     const client = await clientPromise;
-    const db = client.db('blogisphere');
-    
-    // Try to ping the database
-    await db.command({ ping: 1 });
-    
-    console.log('MongoDB connection successful!');
-    
-    // Try to access collections
-    const collections = await db.listCollections().toArray();
-    console.log('Available collections:', collections.map(c => c.name));
-    
-    return {
-      success: true,
-      message: 'Connected to MongoDB successfully',
-      collections: collections.map(c => c.name)
-    };
+    if (!client) {
+      toast.error("Could not connect to MongoDB");
+      return false;
+    }
+
+    const connectionStatus = await checkMongoDBConnection();
+    if (connectionStatus.success) {
+      toast.success(connectionStatus.message);
+      console.log("MongoDB connection successful:", connectionStatus);
+      return true;
+    } else {
+      toast.error(connectionStatus.message);
+      console.error("MongoDB connection failed:", connectionStatus);
+      return false;
+    }
   } catch (error) {
-    console.error('MongoDB connection test failed:', error);
-    return {
-      success: false,
-      message: error.message,
-      error
-    };
+    console.error("Error testing MongoDB connection:", error);
+    toast.error("Error connecting to MongoDB");
+    return false;
   }
 };
+
+export default testMongoConnection;

@@ -3,6 +3,9 @@ import { Document, WithId } from 'mongodb';
 import type { Post } from '../../../types/post';
 import { v4 as uuidv4 } from 'uuid';
 
+// Enhanced Document type that's more permissive
+type DocumentLike = WithId<Document> | Record<string, any>;
+
 /**
  * Safely extracts a specific field from a document with type checking
  */
@@ -71,7 +74,7 @@ const formatAuthor = (authorValue: any): string | { name: string; avatar?: strin
 /**
  * Converts a MongoDB blog document to the Post type used in the application
  */
-export const formatPost = (post: WithId<Document> | Record<string, any>): Post => {
+export const formatPost = (post: DocumentLike): Post => {
   try {
     // Ensure we're working with a plain object
     const blogPost = post as Record<string, any>;
@@ -143,7 +146,7 @@ export const formatPost = (post: WithId<Document> | Record<string, any>): Post =
 /**
  * Format a comment document from MongoDB to use in the application
  */
-export const formatComment = (comment: WithId<Document>) => {
+export const formatComment = (comment: DocumentLike) => {
   try {
     const commentDoc = comment as Record<string, any>;
     
@@ -183,7 +186,7 @@ export const formatComment = (comment: WithId<Document>) => {
 /**
  * Format a user document from MongoDB to use in the application
  */
-export const formatUser = (user: WithId<Document>) => {
+export const formatUser = (user: DocumentLike) => {
   try {
     const userDoc = user as Record<string, any>;
     
