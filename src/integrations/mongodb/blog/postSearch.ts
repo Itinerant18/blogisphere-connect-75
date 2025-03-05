@@ -1,4 +1,3 @@
-
 import { getCollection } from '../client';
 import { COLLECTIONS } from '../schema';
 import { formatPost } from '../utils/formatters';

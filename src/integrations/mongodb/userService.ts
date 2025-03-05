@@ -1,102 +1,148 @@
-import { ObjectId, Document, WithId } from 'mongodb';
+/**
+ * User Service
+ * 
+ * This file provides methods for performing CRUD operations on user documents in MongoDB.
+ */
+
+import { ObjectId } from 'mongodb';
 import { getCollection } from './client';
 import { UserDocument, COLLECTIONS } from './schema';
+import { v4 as uuidv4 } from 'uuid';
 
-// Format user document for frontend
-const formatUser = (doc: WithId<Document>) => {
-  // Cast to UserDocument after an unknown cast to handle type conflicts
-  const user = doc as unknown as UserDocument;
-  const { _id, ...rest } = user;
-  
-  return {
-    id: _id ? _id.toString() : rest.id || rest.user_id,
-    ...rest,
-    created_at: rest.created_at ? new Date(rest.created_at).toISOString() : new Date().toISOString(),
-    updated_at: rest.updated_at ? new Date(rest.updated_at).toISOString() : undefined,
-  };
-};
+// Wherever there are type errors with formatUser, update to use DocumentLike type
+import { formatUser, DocumentLike } from './utils/formatters';
 
-// Create or update user profile
-export const createOrUpdateUser = async (userData: Omit<UserDocument, '_id' | 'created_at'>) => {
+/**
+ * Create a new user
+ */
+export const createUser = async (user: Omit<UserDocument, 'id' | '_id' | 'created_at' | 'updated_at'>) => {
   try {
     const collection = await getCollection(COLLECTIONS.USERS);
     
-    // Check if user already exists
-    const existingUser = await collection.findOne({ user_id: userData.user_id });
+    const newUser: UserDocument = {
+      id: uuidv4(),
+      ...user,
+      created_at: new Date(),
+      updated_at: new Date()
+    };
     
-    if (existingUser) {
-      // Update existing user
-      const { user_id, ...updateData } = userData;
-      
-      await collection.updateOne(
-        { user_id },
-        { 
-          $set: { 
-            ...updateData,
-            updated_at: new Date() 
-          } 
+    const result = await collection.insertOne(newUser);
+    
+    return { 
+      id: result.insertedId.toString(),
+      success: true 
+    };
+  } catch (error) {
+    console.error('Error creating user:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update an existing user
+ */
+export const updateUser = async (userId: string, updates: Partial<UserDocument>) => {
+  try {
+    const collection = await getCollection(COLLECTIONS.USERS);
+    
+    // Try to find by id field first
+    let user = await collection.findOne({ id: userId });
+    let query = { id: userId };
+    
+    // If not found, try to find by _id if it's a valid ObjectId
+    if (!user) {
+      try {
+        const objectId = new ObjectId(userId);
+        user = await collection.findOne({ _id: objectId });
+        if (user) {
+          query = { _id: objectId };
         }
-      );
-      
-      return { 
-        success: true, 
-        id: existingUser._id.toString(),
-        isNew: false
-      };
-    } else {
-      // Create new user
-      const newUser = {
-        ...userData,
-        created_at: new Date(),
-        role: userData.role || 'user'
-      };
-      
-      // Use as unknown as Document to match MongoDB's expected type
-      const result = await collection.insertOne(newUser as unknown as Document);
-      
-      return { 
-        success: true, 
-        id: result.insertedId.toString(),
-        isNew: true
-      };
+      } catch (e) {
+        // Not a valid ObjectId, which is fine
+      }
     }
+    
+    if (!user) {
+      throw new Error('User not found');
+    }
+    
+    // Ensure we don't overwrite id or _id
+    const { id, _id, ...updateData } = updates as any;
+    
+    const result = await collection.updateOne(
+      query,
+      { 
+        $set: { 
+          ...updateData,
+          updated_at: new Date() 
+        } 
+      }
+    );
+    
+    if (result.modifiedCount === 0) {
+      throw new Error('User not found or no changes made');
+    }
+    
+    const updatedUser = await collection.findOne(query);
+    return formatUser(updatedUser as DocumentLike);
   } catch (error) {
-    console.error('Error creating/updating user:', error);
+    console.error(`Error updating user ${userId}:`, error);
     throw error;
   }
 };
 
-// Get user by auth provider user ID
-export const getUserByAuthId = async (userId: string) => {
+/**
+ * Delete a user
+ */
+export const deleteUser = async (userId: string) => {
   try {
     const collection = await getCollection(COLLECTIONS.USERS);
     
-    const user = await collection.findOne({ user_id: userId });
+    // Try to find by id field first
+    let user = await collection.findOne({ id: userId });
+    let query = { id: userId };
     
-    if (!user) return null;
+    // If not found, try to find by _id if it's a valid ObjectId
+    if (!user) {
+      try {
+        const objectId = new ObjectId(userId);
+        user = await collection.findOne({ _id: objectId });
+        if (user) {
+          query = { _id: objectId };
+        }
+      } catch (e) {
+        // Not a valid ObjectId, which is fine
+      }
+    }
     
-    return formatUser(user);
+    if (!user) {
+      throw new Error('User not found');
+    }
+    
+    const result = await collection.deleteOne(query);
+    
+    if (result.deletedCount === 0) {
+      throw new Error('User not found');
+    }
+    
+    return { success: true };
   } catch (error) {
-    console.error(`Error getting user by auth ID ${userId}:`, error);
+    console.error(`Error deleting user ${userId}:`, error);
     throw error;
   }
 };
 
-// Get user by MongoDB ID
+/**
+ * Get a user by ID
+ */
 export const getUserById = async (userId: string) => {
   try {
     const collection = await getCollection(COLLECTIONS.USERS);
     
-    let user;
     // Try to find by id field first
-    user = await collection.findOne({ id: userId });
+    let user = await collection.findOne({ id: userId });
     
-    // If not found, try to find by user_id
-    if (!user) {
-      user = await collection.findOne({ user_id: userId });
-    }
-    
-    // If still not found, try to find by _id if it's a valid ObjectId
+    // If not found, try to find by _id if it's a valid ObjectId
     if (!user) {
       try {
         const objectId = new ObjectId(userId);
@@ -106,94 +152,45 @@ export const getUserById = async (userId: string) => {
       }
     }
     
-    if (!user) {
-      return null;
-    }
+    if (!user) return null;
     
-    // The type casting here fixes the error
-    return formatUser(user as any);
+    return formatUser(user as DocumentLike);
   } catch (error) {
     console.error(`Error getting user by ID ${userId}:`, error);
     throw error;
   }
 };
 
-// Get user by username
-export const getUserByUsername = async (username: string) => {
-  try {
-    const collection = await getCollection(COLLECTIONS.USERS);
-    
-    const user = await collection.findOne({ username });
-    
-    if (!user) return null;
-    
-    return formatUser(user);
-  } catch (error) {
-    console.error(`Error getting user by username ${username}:`, error);
-    throw error;
-  }
-};
-
-// Get user by email
+/**
+ * Get a user by email
+ */
 export const getUserByEmail = async (email: string) => {
   try {
     const collection = await getCollection(COLLECTIONS.USERS);
+    
     const user = await collection.findOne({ email });
     
-    if (!user) {
-      return null;
-    }
+    if (!user) return null;
     
-    // The type casting here fixes the error
-    return formatUser(user as any);
+    return formatUser(user as DocumentLike);
   } catch (error) {
     console.error(`Error getting user by email ${email}:`, error);
     throw error;
   }
 };
 
-// Update user profile
-export const updateUserProfile = async (userId: string, updates: Partial<UserDocument>) => {
+/**
+ * List all users
+ */
+export const getAllUsers = async () => {
   try {
     const collection = await getCollection(COLLECTIONS.USERS);
     
-    const { _id, user_id, created_at, ...updateData } = updates;
+    const users = await collection.find().toArray();
     
-    const result = await collection.updateOne(
-      { user_id: userId },
-      { 
-        $set: { 
-          ...updateData,
-          updated_at: new Date() 
-        } 
-      }
-    );
-    
-    if (result.matchedCount === 0) {
-      throw new Error('User not found');
-    }
-    
-    return { success: true };
+    return users.map(user => formatUser(user as DocumentLike));
   } catch (error) {
-    console.error(`Error updating user profile for ${userId}:`, error);
-    throw error;
-  }
-};
-
-// Delete user
-export const deleteUser = async (userId: string) => {
-  try {
-    const collection = await getCollection(COLLECTIONS.USERS);
-    
-    const result = await collection.deleteOne({ user_id: userId });
-    
-    if (result.deletedCount === 0) {
-      throw new Error('User not found');
-    }
-    
-    return { success: true };
-  } catch (error) {
-    console.error(`Error deleting user ${userId}:`, error);
+    console.error('Error getting all users:', error);
     throw error;
   }
 };

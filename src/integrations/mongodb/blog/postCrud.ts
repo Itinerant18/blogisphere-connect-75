@@ -1,4 +1,3 @@
-
 import { ObjectId } from 'mongodb';
 import { getCollection } from '../client';
 import type { Post } from '../../../types/post';

@@ -1,4 +1,3 @@
-
 import { ObjectId } from '../client';
 import { getCollection } from '../client';
 import type { Post } from '../../../types/post';
