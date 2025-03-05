@@ -9,7 +9,7 @@ import { useUser } from "@clerk/clerk-react";
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { Post } from '../types/post';
 import { SearchBar } from '@/components/SearchBar';
-import { getAllPosts, getFeaturedPosts } from "@/integrations/mongodb/blogService";
+import { getAllPosts, getFeaturedPosts } from "@/integrations/supabase/blogService";
 import { WelcomeHeader } from '@/components/home/WelcomeHeader';
 import { CategoriesFilter } from '@/components/home/CategoriesFilter';
 import { NewsletterSubscription } from '@/components/home/NewsletterSubscription';
