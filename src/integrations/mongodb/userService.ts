@@ -1,3 +1,4 @@
+
 /**
  * User Service
  * 
@@ -47,7 +48,7 @@ export const updateUser = async (userId: string, updates: Partial<UserDocument>)
     
     // Try to find by id field first
     let user = await collection.findOne({ id: userId });
-    let query = { id: userId };
+    let query: Record<string, any> = { id: userId };
     
     // If not found, try to find by _id if it's a valid ObjectId
     if (!user) {
@@ -100,7 +101,7 @@ export const deleteUser = async (userId: string) => {
     
     // Try to find by id field first
     let user = await collection.findOne({ id: userId });
-    let query = { id: userId };
+    let query: Record<string, any> = { id: userId };
     
     // If not found, try to find by _id if it's a valid ObjectId
     if (!user) {
