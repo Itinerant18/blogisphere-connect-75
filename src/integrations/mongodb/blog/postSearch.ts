@@ -8,7 +8,7 @@ export const searchPosts = async (query: string) => {
   try {
     const collection = await getCollection(COLLECTIONS.BLOGS);
     
-    const posts = collection
+    const posts = await collection
       .find({
         $and: [
           { status: 'published' },
@@ -20,10 +20,13 @@ export const searchPosts = async (query: string) => {
             ]
           }
         ]
-      })
-      .sort({ created_at: -1 });
+      });
     
-    const postsArray = await posts.toArray();
+    // First apply sorting
+    const sortedPosts = posts.sort({ created_at: -1 });
+    
+    // Then get the array
+    const postsArray = await sortedPosts.toArray();
     return postsArray.map(post => formatPost(post));
   } catch (error) {
     console.error(`Error searching posts for "${query}":`, error);

@@ -1,4 +1,3 @@
-
 import { ObjectId, Document, WithId } from 'mongodb';
 import { getCollection } from './client';
 import { UserDocument, COLLECTIONS } from './schema';
@@ -84,30 +83,37 @@ export const getUserByAuthId = async (userId: string) => {
 };
 
 // Get user by MongoDB ID
-export const getUserById = async (id: string) => {
+export const getUserById = async (userId: string) => {
   try {
     const collection = await getCollection(COLLECTIONS.USERS);
     
     let user;
-    
     // Try to find by id field first
-    user = await collection.findOne({ id });
+    user = await collection.findOne({ id: userId });
     
-    // If not found, try with ObjectId
+    // If not found, try to find by user_id
+    if (!user) {
+      user = await collection.findOne({ user_id: userId });
+    }
+    
+    // If still not found, try to find by _id if it's a valid ObjectId
     if (!user) {
       try {
-        const objectId = new ObjectId(id);
+        const objectId = new ObjectId(userId);
         user = await collection.findOne({ _id: objectId });
       } catch (e) {
         // Not a valid ObjectId, which is fine
       }
     }
     
-    if (!user) return null;
+    if (!user) {
+      return null;
+    }
     
-    return formatUser(user);
+    // The type casting here fixes the error
+    return formatUser(user as any);
   } catch (error) {
-    console.error(`Error getting user by ID ${id}:`, error);
+    console.error(`Error getting user by ID ${userId}:`, error);
     throw error;
   }
 };
@@ -124,6 +130,24 @@ export const getUserByUsername = async (username: string) => {
     return formatUser(user);
   } catch (error) {
     console.error(`Error getting user by username ${username}:`, error);
+    throw error;
+  }
+};
+
+// Get user by email
+export const getUserByEmail = async (email: string) => {
+  try {
+    const collection = await getCollection(COLLECTIONS.USERS);
+    const user = await collection.findOne({ email });
+    
+    if (!user) {
+      return null;
+    }
+    
+    // The type casting here fixes the error
+    return formatUser(user as any);
+  } catch (error) {
+    console.error(`Error getting user by email ${email}:`, error);
     throw error;
   }
 };

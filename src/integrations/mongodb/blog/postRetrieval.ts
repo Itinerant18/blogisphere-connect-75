@@ -1,5 +1,5 @@
 
-import { ObjectId } from 'mongodb';
+import { ObjectId } from '../client';
 import { getCollection } from '../client';
 import type { Post } from '../../../types/post';
 import { COLLECTIONS } from '../schema';
@@ -10,11 +10,14 @@ export const getAllPosts = async () => {
   try {
     const collection = await getCollection(COLLECTIONS.BLOGS);
     
-    const posts = collection
-      .find({ status: { $ne: 'archived' } })
-      .sort({ created_at: -1 });
+    const posts = await collection
+      .find({ status: { $ne: 'archived' } });
     
-    const postsArray = await posts.toArray();
+    // First apply sorting
+    const sortedPosts = posts.sort({ created_at: -1 });
+    
+    // Then get the array
+    const postsArray = await sortedPosts.toArray();
     return postsArray.map(post => formatPost(post));
   } catch (error) {
     console.error('Error getting all posts:', error);
@@ -63,11 +66,14 @@ export const getPostsByUserId = async (userId: string) => {
   try {
     const collection = await getCollection(COLLECTIONS.BLOGS);
     
-    const posts = collection
-      .find({ user_id: userId })
-      .sort({ created_at: -1 });
+    const posts = await collection
+      .find({ user_id: userId });
     
-    const postsArray = await posts.toArray();
+    // First apply sorting
+    const sortedPosts = posts.sort({ created_at: -1 });
+    
+    // Then get the array
+    const postsArray = await sortedPosts.toArray();
     return postsArray.map(post => formatPost(post));
   } catch (error) {
     console.error(`Error getting posts by user ID ${userId}:`, error);
@@ -80,15 +86,20 @@ export const getFeaturedPosts = async (count: number = 3) => {
   try {
     const collection = await getCollection(COLLECTIONS.BLOGS);
     
-    const posts = collection
+    const posts = await collection
       .find({ 
         featured: true,
         status: 'published'
-      })
-      .sort({ created_at: -1 })
-      .limit(count);
+      });
     
-    const postsArray = await posts.toArray();
+    // First apply sorting
+    const sortedPosts = posts.sort({ created_at: -1 });
+    
+    // Then apply limit
+    const limitedPosts = sortedPosts.limit(count);
+    
+    // Finally get the array
+    const postsArray = await limitedPosts.toArray();
     return postsArray.map(post => formatPost(post));
   } catch (error) {
     console.error('Error getting featured posts:', error);
@@ -101,14 +112,17 @@ export const getPostsByTag = async (tag: string) => {
   try {
     const collection = await getCollection(COLLECTIONS.BLOGS);
     
-    const posts = collection
+    const posts = await collection
       .find({ 
         tags: { $in: [tag] },
         status: 'published'
-      })
-      .sort({ created_at: -1 });
+      });
     
-    const postsArray = await posts.toArray();
+    // First apply sorting
+    const sortedPosts = posts.sort({ created_at: -1 });
+    
+    // Then get the array
+    const postsArray = await sortedPosts.toArray();
     return postsArray.map(post => formatPost(post));
   } catch (error) {
     console.error(`Error getting posts by tag "${tag}":`, error);
